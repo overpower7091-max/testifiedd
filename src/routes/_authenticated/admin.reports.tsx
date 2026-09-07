@@ -72,7 +72,11 @@ function ReportsPage() {
     })) as Report[];
     setReports(normalized);
     setNotes(Object.fromEntries(normalized.map((row) => [row.id, row.admin_note ?? ""])));
-    setEditing(Object.fromEntries(normalized.filter((row) => row.question).map((row) => [row.id, toEditState(row.question)])));
+    setEditing(
+      Object.fromEntries(
+        normalized.flatMap((row) => (row.question ? [[row.id, toEditState(row.question)] as const] : [])),
+      ),
+    );
     setLoading(false);
   };
 
