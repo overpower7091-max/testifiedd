@@ -1,0 +1,1 @@
+UPDATE public.live_quiz_blueprints SET is_active = true, updated_at = now() WHERE is_active = false;

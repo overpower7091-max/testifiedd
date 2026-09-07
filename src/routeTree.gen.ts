@@ -9,38 +9,392 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SuspendedRouteImport } from './routes/suspended'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedSubjectsRouteImport } from './routes/_authenticated/subjects'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedMockRouteImport } from './routes/_authenticated/mock'
+import { Route as AuthenticatedLiveRouteImport } from './routes/_authenticated/live'
+import { Route as AuthenticatedLeaderboardRouteImport } from './routes/_authenticated/leaderboard'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedSubjectIdRouteImport } from './routes/_authenticated/subject.$id'
+import { Route as AuthenticatedPracticeChapterIdRouteImport } from './routes/_authenticated/practice.$chapterId'
+import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin.reports'
+import { Route as AuthenticatedAdminLiveQuizRouteImport } from './routes/_authenticated/admin.live-quiz'
+import { Route as AuthenticatedAdminContentIndexRouteImport } from './routes/_authenticated/admin.content.index'
+import { Route as ApiPublicHooksLiveQuizTickRouteImport } from './routes/api/public/hooks/live-quiz-tick'
+import { Route as AuthenticatedPracticeTopicTopicIdRouteImport } from './routes/_authenticated/practice.topic.$topicId'
+import { Route as AuthenticatedHistorySessionSessionIdRouteImport } from './routes/_authenticated/history_.session.$sessionId'
+import { Route as AuthenticatedAdminStudentIdRouteImport } from './routes/_authenticated/admin.student.$id'
+import { Route as AuthenticatedAdminClassLevelRouteImport } from './routes/_authenticated/admin.class.$level'
+import { Route as AuthenticatedAdminContentTopicIdRouteImport } from './routes/_authenticated/admin.content.topic.$id'
+import { Route as AuthenticatedAdminContentSubjectIdRouteImport } from './routes/_authenticated/admin.content.subject.$id'
 
+const SuspendedRoute = SuspendedRouteImport.update({
+  id: '/suspended',
+  path: '/suspended',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSubjectsRoute = AuthenticatedSubjectsRouteImport.update({
+  id: '/subjects',
+  path: '/subjects',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMockRoute = AuthenticatedMockRouteImport.update({
+  id: '/mock',
+  path: '/mock',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLiveRoute = AuthenticatedLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLeaderboardRoute =
+  AuthenticatedLeaderboardRouteImport.update({
+    id: '/leaderboard',
+    path: '/leaderboard',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedSubjectIdRoute = AuthenticatedSubjectIdRouteImport.update({
+  id: '/subject/$id',
+  path: '/subject/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPracticeChapterIdRoute =
+  AuthenticatedPracticeChapterIdRouteImport.update({
+    id: '/practice/$chapterId',
+    path: '/practice/$chapterId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminReportsRoute =
+  AuthenticatedAdminReportsRouteImport.update({
+    id: '/reports',
+    path: '/reports',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLiveQuizRoute =
+  AuthenticatedAdminLiveQuizRouteImport.update({
+    id: '/live-quiz',
+    path: '/live-quiz',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminContentIndexRoute =
+  AuthenticatedAdminContentIndexRouteImport.update({
+    id: '/content/',
+    path: '/content/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const ApiPublicHooksLiveQuizTickRoute =
+  ApiPublicHooksLiveQuizTickRouteImport.update({
+    id: '/api/public/hooks/live-quiz-tick',
+    path: '/api/public/hooks/live-quiz-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedPracticeTopicTopicIdRoute =
+  AuthenticatedPracticeTopicTopicIdRouteImport.update({
+    id: '/practice/topic/$topicId',
+    path: '/practice/topic/$topicId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHistorySessionSessionIdRoute =
+  AuthenticatedHistorySessionSessionIdRouteImport.update({
+    id: '/history_/session/$sessionId',
+    path: '/history/session/$sessionId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminStudentIdRoute =
+  AuthenticatedAdminStudentIdRouteImport.update({
+    id: '/student/$id',
+    path: '/student/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminClassLevelRoute =
+  AuthenticatedAdminClassLevelRouteImport.update({
+    id: '/class/$level',
+    path: '/class/$level',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminContentTopicIdRoute =
+  AuthenticatedAdminContentTopicIdRouteImport.update({
+    id: '/content/topic/$id',
+    path: '/content/topic/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminContentSubjectIdRoute =
+  AuthenticatedAdminContentSubjectIdRouteImport.update({
+    id: '/content/subject/$id',
+    path: '/content/subject/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/suspended': typeof SuspendedRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/history': typeof AuthenticatedHistoryRoute
+  '/home': typeof AuthenticatedHomeRoute
+  '/leaderboard': typeof AuthenticatedLeaderboardRoute
+  '/live': typeof AuthenticatedLiveRoute
+  '/mock': typeof AuthenticatedMockRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/subjects': typeof AuthenticatedSubjectsRoute
+  '/admin/live-quiz': typeof AuthenticatedAdminLiveQuizRoute
+  '/admin/reports': typeof AuthenticatedAdminReportsRoute
+  '/practice/$chapterId': typeof AuthenticatedPracticeChapterIdRoute
+  '/subject/$id': typeof AuthenticatedSubjectIdRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/class/$level': typeof AuthenticatedAdminClassLevelRoute
+  '/admin/student/$id': typeof AuthenticatedAdminStudentIdRoute
+  '/history/session/$sessionId': typeof AuthenticatedHistorySessionSessionIdRoute
+  '/practice/topic/$topicId': typeof AuthenticatedPracticeTopicTopicIdRoute
+  '/api/public/hooks/live-quiz-tick': typeof ApiPublicHooksLiveQuizTickRoute
+  '/admin/content/': typeof AuthenticatedAdminContentIndexRoute
+  '/admin/content/subject/$id': typeof AuthenticatedAdminContentSubjectIdRoute
+  '/admin/content/topic/$id': typeof AuthenticatedAdminContentTopicIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/suspended': typeof SuspendedRoute
+  '/history': typeof AuthenticatedHistoryRoute
+  '/home': typeof AuthenticatedHomeRoute
+  '/leaderboard': typeof AuthenticatedLeaderboardRoute
+  '/live': typeof AuthenticatedLiveRoute
+  '/mock': typeof AuthenticatedMockRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/subjects': typeof AuthenticatedSubjectsRoute
+  '/admin/live-quiz': typeof AuthenticatedAdminLiveQuizRoute
+  '/admin/reports': typeof AuthenticatedAdminReportsRoute
+  '/practice/$chapterId': typeof AuthenticatedPracticeChapterIdRoute
+  '/subject/$id': typeof AuthenticatedSubjectIdRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/class/$level': typeof AuthenticatedAdminClassLevelRoute
+  '/admin/student/$id': typeof AuthenticatedAdminStudentIdRoute
+  '/history/session/$sessionId': typeof AuthenticatedHistorySessionSessionIdRoute
+  '/practice/topic/$topicId': typeof AuthenticatedPracticeTopicTopicIdRoute
+  '/api/public/hooks/live-quiz-tick': typeof ApiPublicHooksLiveQuizTickRoute
+  '/admin/content': typeof AuthenticatedAdminContentIndexRoute
+  '/admin/content/subject/$id': typeof AuthenticatedAdminContentSubjectIdRoute
+  '/admin/content/topic/$id': typeof AuthenticatedAdminContentTopicIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/suspended': typeof SuspendedRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/history': typeof AuthenticatedHistoryRoute
+  '/_authenticated/home': typeof AuthenticatedHomeRoute
+  '/_authenticated/leaderboard': typeof AuthenticatedLeaderboardRoute
+  '/_authenticated/live': typeof AuthenticatedLiveRoute
+  '/_authenticated/mock': typeof AuthenticatedMockRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/subjects': typeof AuthenticatedSubjectsRoute
+  '/_authenticated/admin/live-quiz': typeof AuthenticatedAdminLiveQuizRoute
+  '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
+  '/_authenticated/practice/$chapterId': typeof AuthenticatedPracticeChapterIdRoute
+  '/_authenticated/subject/$id': typeof AuthenticatedSubjectIdRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/class/$level': typeof AuthenticatedAdminClassLevelRoute
+  '/_authenticated/admin/student/$id': typeof AuthenticatedAdminStudentIdRoute
+  '/_authenticated/history_/session/$sessionId': typeof AuthenticatedHistorySessionSessionIdRoute
+  '/_authenticated/practice/topic/$topicId': typeof AuthenticatedPracticeTopicTopicIdRoute
+  '/api/public/hooks/live-quiz-tick': typeof ApiPublicHooksLiveQuizTickRoute
+  '/_authenticated/admin/content/': typeof AuthenticatedAdminContentIndexRoute
+  '/_authenticated/admin/content/subject/$id': typeof AuthenticatedAdminContentSubjectIdRoute
+  '/_authenticated/admin/content/topic/$id': typeof AuthenticatedAdminContentTopicIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/suspended'
+    | '/admin'
+    | '/history'
+    | '/home'
+    | '/leaderboard'
+    | '/live'
+    | '/mock'
+    | '/onboarding'
+    | '/profile'
+    | '/subjects'
+    | '/admin/live-quiz'
+    | '/admin/reports'
+    | '/practice/$chapterId'
+    | '/subject/$id'
+    | '/admin/'
+    | '/admin/class/$level'
+    | '/admin/student/$id'
+    | '/history/session/$sessionId'
+    | '/practice/topic/$topicId'
+    | '/api/public/hooks/live-quiz-tick'
+    | '/admin/content/'
+    | '/admin/content/subject/$id'
+    | '/admin/content/topic/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/suspended'
+    | '/history'
+    | '/home'
+    | '/leaderboard'
+    | '/live'
+    | '/mock'
+    | '/onboarding'
+    | '/profile'
+    | '/subjects'
+    | '/admin/live-quiz'
+    | '/admin/reports'
+    | '/practice/$chapterId'
+    | '/subject/$id'
+    | '/admin'
+    | '/admin/class/$level'
+    | '/admin/student/$id'
+    | '/history/session/$sessionId'
+    | '/practice/topic/$topicId'
+    | '/api/public/hooks/live-quiz-tick'
+    | '/admin/content'
+    | '/admin/content/subject/$id'
+    | '/admin/content/topic/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/reset-password'
+    | '/suspended'
+    | '/_authenticated/admin'
+    | '/_authenticated/history'
+    | '/_authenticated/home'
+    | '/_authenticated/leaderboard'
+    | '/_authenticated/live'
+    | '/_authenticated/mock'
+    | '/_authenticated/onboarding'
+    | '/_authenticated/profile'
+    | '/_authenticated/subjects'
+    | '/_authenticated/admin/live-quiz'
+    | '/_authenticated/admin/reports'
+    | '/_authenticated/practice/$chapterId'
+    | '/_authenticated/subject/$id'
+    | '/_authenticated/admin/'
+    | '/_authenticated/admin/class/$level'
+    | '/_authenticated/admin/student/$id'
+    | '/_authenticated/history_/session/$sessionId'
+    | '/_authenticated/practice/topic/$topicId'
+    | '/api/public/hooks/live-quiz-tick'
+    | '/_authenticated/admin/content/'
+    | '/_authenticated/admin/content/subject/$id'
+    | '/_authenticated/admin/content/topic/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SuspendedRoute: typeof SuspendedRoute
+  ApiPublicHooksLiveQuizTickRoute: typeof ApiPublicHooksLiveQuizTickRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/suspended': {
+      id: '/suspended'
+      path: '/suspended'
+      fullPath: '/suspended'
+      preLoaderRoute: typeof SuspendedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +402,233 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/subjects': {
+      id: '/_authenticated/subjects'
+      path: '/subjects'
+      fullPath: '/subjects'
+      preLoaderRoute: typeof AuthenticatedSubjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mock': {
+      id: '/_authenticated/mock'
+      path: '/mock'
+      fullPath: '/mock'
+      preLoaderRoute: typeof AuthenticatedMockRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/live': {
+      id: '/_authenticated/live'
+      path: '/live'
+      fullPath: '/live'
+      preLoaderRoute: typeof AuthenticatedLiveRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/leaderboard': {
+      id: '/_authenticated/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof AuthenticatedLeaderboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/subject/$id': {
+      id: '/_authenticated/subject/$id'
+      path: '/subject/$id'
+      fullPath: '/subject/$id'
+      preLoaderRoute: typeof AuthenticatedSubjectIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/practice/$chapterId': {
+      id: '/_authenticated/practice/$chapterId'
+      path: '/practice/$chapterId'
+      fullPath: '/practice/$chapterId'
+      preLoaderRoute: typeof AuthenticatedPracticeChapterIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/reports': {
+      id: '/_authenticated/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AuthenticatedAdminReportsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/live-quiz': {
+      id: '/_authenticated/admin/live-quiz'
+      path: '/live-quiz'
+      fullPath: '/admin/live-quiz'
+      preLoaderRoute: typeof AuthenticatedAdminLiveQuizRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/content/': {
+      id: '/_authenticated/admin/content/'
+      path: '/content'
+      fullPath: '/admin/content/'
+      preLoaderRoute: typeof AuthenticatedAdminContentIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/api/public/hooks/live-quiz-tick': {
+      id: '/api/public/hooks/live-quiz-tick'
+      path: '/api/public/hooks/live-quiz-tick'
+      fullPath: '/api/public/hooks/live-quiz-tick'
+      preLoaderRoute: typeof ApiPublicHooksLiveQuizTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/practice/topic/$topicId': {
+      id: '/_authenticated/practice/topic/$topicId'
+      path: '/practice/topic/$topicId'
+      fullPath: '/practice/topic/$topicId'
+      preLoaderRoute: typeof AuthenticatedPracticeTopicTopicIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/history_/session/$sessionId': {
+      id: '/_authenticated/history_/session/$sessionId'
+      path: '/history/session/$sessionId'
+      fullPath: '/history/session/$sessionId'
+      preLoaderRoute: typeof AuthenticatedHistorySessionSessionIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/student/$id': {
+      id: '/_authenticated/admin/student/$id'
+      path: '/student/$id'
+      fullPath: '/admin/student/$id'
+      preLoaderRoute: typeof AuthenticatedAdminStudentIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/class/$level': {
+      id: '/_authenticated/admin/class/$level'
+      path: '/class/$level'
+      fullPath: '/admin/class/$level'
+      preLoaderRoute: typeof AuthenticatedAdminClassLevelRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/content/topic/$id': {
+      id: '/_authenticated/admin/content/topic/$id'
+      path: '/content/topic/$id'
+      fullPath: '/admin/content/topic/$id'
+      preLoaderRoute: typeof AuthenticatedAdminContentTopicIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/content/subject/$id': {
+      id: '/_authenticated/admin/content/subject/$id'
+      path: '/content/subject/$id'
+      fullPath: '/admin/content/subject/$id'
+      preLoaderRoute: typeof AuthenticatedAdminContentSubjectIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminLiveQuizRoute: typeof AuthenticatedAdminLiveQuizRoute
+  AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminClassLevelRoute: typeof AuthenticatedAdminClassLevelRoute
+  AuthenticatedAdminStudentIdRoute: typeof AuthenticatedAdminStudentIdRoute
+  AuthenticatedAdminContentIndexRoute: typeof AuthenticatedAdminContentIndexRoute
+  AuthenticatedAdminContentSubjectIdRoute: typeof AuthenticatedAdminContentSubjectIdRoute
+  AuthenticatedAdminContentTopicIdRoute: typeof AuthenticatedAdminContentTopicIdRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminLiveQuizRoute: AuthenticatedAdminLiveQuizRoute,
+  AuthenticatedAdminReportsRoute: AuthenticatedAdminReportsRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminClassLevelRoute: AuthenticatedAdminClassLevelRoute,
+  AuthenticatedAdminStudentIdRoute: AuthenticatedAdminStudentIdRoute,
+  AuthenticatedAdminContentIndexRoute: AuthenticatedAdminContentIndexRoute,
+  AuthenticatedAdminContentSubjectIdRoute:
+    AuthenticatedAdminContentSubjectIdRoute,
+  AuthenticatedAdminContentTopicIdRoute: AuthenticatedAdminContentTopicIdRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
+  AuthenticatedLeaderboardRoute: typeof AuthenticatedLeaderboardRoute
+  AuthenticatedLiveRoute: typeof AuthenticatedLiveRoute
+  AuthenticatedMockRoute: typeof AuthenticatedMockRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedSubjectsRoute: typeof AuthenticatedSubjectsRoute
+  AuthenticatedPracticeChapterIdRoute: typeof AuthenticatedPracticeChapterIdRoute
+  AuthenticatedSubjectIdRoute: typeof AuthenticatedSubjectIdRoute
+  AuthenticatedHistorySessionSessionIdRoute: typeof AuthenticatedHistorySessionSessionIdRoute
+  AuthenticatedPracticeTopicTopicIdRoute: typeof AuthenticatedPracticeTopicTopicIdRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
+  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
+  AuthenticatedLeaderboardRoute: AuthenticatedLeaderboardRoute,
+  AuthenticatedLiveRoute: AuthenticatedLiveRoute,
+  AuthenticatedMockRoute: AuthenticatedMockRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedSubjectsRoute: AuthenticatedSubjectsRoute,
+  AuthenticatedPracticeChapterIdRoute: AuthenticatedPracticeChapterIdRoute,
+  AuthenticatedSubjectIdRoute: AuthenticatedSubjectIdRoute,
+  AuthenticatedHistorySessionSessionIdRoute:
+    AuthenticatedHistorySessionSessionIdRoute,
+  AuthenticatedPracticeTopicTopicIdRoute:
+    AuthenticatedPracticeTopicTopicIdRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SuspendedRoute: SuspendedRoute,
+  ApiPublicHooksLiveQuizTickRoute: ApiPublicHooksLiveQuizTickRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
