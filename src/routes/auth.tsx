@@ -34,16 +34,16 @@ function AuthPage() {
 
   const handleGoogle = async () => {
     setBusy(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin + "/auth" },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin + "/auth",
     });
-    if (error) {
-      toast.error(error.message ?? "Google sign-in failed");
+    if (result.error) {
+      toast.error(result.error.message ?? "Google sign-in failed");
       setBusy(false);
       return;
     }
-    // On success, Supabase redirects the browser to Google, so nothing else runs here.
+    if (result.redirected) return;
+    navigate({ to: "/home" });
   };
 
   const handleEmail = async (e: React.FormEvent) => {
@@ -51,16 +51,31 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: window.location.origin + "/auth" },
         });
         if (error) throw error;
+        if (!data.session) {
+          // Email confirmation is required: there is no session yet, so don't
+          // send the user to a signed-in page (it would bounce straight back).
+          toast.success("Account created — check your email to confirm, then sign in.");
+          setMode("signin");
+          setPassword("");
+          setBusy(false);
+          return;
+        }
         toast.success("Account created — signing you in…");
       } else if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          if (error.message?.toLowerCase().includes("email not confirmed")) {
+            toast.error("Please confirm your email first — check your inbox for the link.");
+            return;
+          }
+          throw error;
+        }
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: window.location.origin + "/reset-password",
@@ -78,6 +93,7 @@ function AuthPage() {
       setBusy(false);
     }
   };
+
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-black text-white">
