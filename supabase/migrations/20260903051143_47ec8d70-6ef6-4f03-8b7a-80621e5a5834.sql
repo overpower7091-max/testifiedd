@@ -1,0 +1,1 @@
+GRANT UPDATE ON public.question_reports TO authenticated;
