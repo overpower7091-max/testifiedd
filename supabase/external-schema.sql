@@ -1,12 +1,29 @@
 -- Full schema for the external Supabase project (hecqnhmfllvqipttbpxe).
--- Paste this whole file into that project's SQL editor and run it once.
+-- Safe to run MORE THAN ONCE: every object is created only if missing.
 
 -- ── Types ────────────────────────────────────────────────────────────────────
-do $$ begin create type public.app_role as enum ('student','admin'); exception when duplicate_object then null; end $$;
-do $$ begin create type public.class_level as enum ('6','7','8','9','10','11','12'); exception when duplicate_object then null; end $$;
-do $$ begin create type public.difficulty as enum ('easy','medium','hard'); exception when duplicate_object then null; end $$;
-do $$ begin create type public.live_quiz_status as enum ('scheduled','configuration_required','generating','live','ended','cancelled'); exception when duplicate_object then null; end $$;
-do $$ begin create type public.question_type as enum ('single','multiple','true_false','assertion_reason','numerical','fill_blank','match'); exception when duplicate_object then null; end $$;
+do $$ begin
+  if not exists (select 1 from pg_type t join pg_namespace n on n.oid = t.typnamespace
+                 where t.typname = 'app_role' and n.nspname = 'public') then
+    create type public.app_role as enum ('student','admin');
+  end if;
+  if not exists (select 1 from pg_type t join pg_namespace n on n.oid = t.typnamespace
+                 where t.typname = 'class_level' and n.nspname = 'public') then
+    create type public.class_level as enum ('6','7','8','9','10','11','12');
+  end if;
+  if not exists (select 1 from pg_type t join pg_namespace n on n.oid = t.typnamespace
+                 where t.typname = 'difficulty' and n.nspname = 'public') then
+    create type public.difficulty as enum ('easy','medium','hard');
+  end if;
+  if not exists (select 1 from pg_type t join pg_namespace n on n.oid = t.typnamespace
+                 where t.typname = 'live_quiz_status' and n.nspname = 'public') then
+    create type public.live_quiz_status as enum ('scheduled','configuration_required','generating','live','ended','cancelled');
+  end if;
+  if not exists (select 1 from pg_type t join pg_namespace n on n.oid = t.typnamespace
+                 where t.typname = 'question_type' and n.nspname = 'public') then
+    create type public.question_type as enum ('single','multiple','true_false','assertion_reason','numerical','fill_blank','match');
+  end if;
+end $$;
 
 -- ── Helpers ──────────────────────────────────────────────────────────────────
 create or replace function public.set_updated_at()
@@ -24,6 +41,7 @@ create table if not exists public.user_roles (
 grant select on public.user_roles to authenticated;
 grant all on public.user_roles to service_role;
 alter table public.user_roles enable row level security;
+drop policy if exists "own roles readable" on public.user_roles;
 create policy "own roles readable" on public.user_roles for select to authenticated using (auth.uid() = user_id);
 
 create or replace function public.has_role(_user_id uuid, _role public.app_role)
@@ -31,6 +49,7 @@ returns boolean language sql stable security definer set search_path = public as
   select exists (select 1 from public.user_roles where user_id = _user_id and role = _role);
 $$;
 
+drop policy if exists "admins read all roles" on public.user_roles;
 create policy "admins read all roles" on public.user_roles for select to authenticated using (public.has_role(auth.uid(),'admin'));
 
 -- ── Profiles ─────────────────────────────────────────────────────────────────
@@ -51,11 +70,17 @@ create table if not exists public.profiles (
 grant select, insert, update on public.profiles to authenticated;
 grant all on public.profiles to service_role;
 alter table public.profiles enable row level security;
+drop policy if exists "own profile read" on public.profiles;
 create policy "own profile read" on public.profiles for select to authenticated using (auth.uid() = id);
+drop policy if exists "own profile insert" on public.profiles;
 create policy "own profile insert" on public.profiles for insert to authenticated with check (auth.uid() = id);
+drop policy if exists "own profile update" on public.profiles;
 create policy "own profile update" on public.profiles for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
+drop policy if exists "admin profile read" on public.profiles;
 create policy "admin profile read" on public.profiles for select to authenticated using (public.has_role(auth.uid(),'admin'));
+drop policy if exists "admin profile update" on public.profiles;
 create policy "admin profile update" on public.profiles for update to authenticated using (public.has_role(auth.uid(),'admin'));
+drop trigger if exists profiles_set_updated_at on public.profiles;
 create trigger profiles_set_updated_at before update on public.profiles for each row execute function public.set_updated_at();
 
 create or replace function public.handle_new_user()
@@ -130,6 +155,7 @@ create table if not exists public.questions (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+drop trigger if exists questions_set_updated_at on public.questions;
 create trigger questions_set_updated_at before update on public.questions for each row execute function public.set_updated_at();
 
 do $$
@@ -137,11 +163,13 @@ declare t text;
 begin
   foreach t in array array['boards','classes','subjects','chapters','topics','question_banks','questions'] loop
     execute format('grant select on public.%I to authenticated, anon', t);
+    execute format('grant insert, update, delete on public.%I to authenticated', t);
     execute format('grant all on public.%I to service_role', t);
     execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists "readable by everyone" on public.%I', t);
     execute format('create policy "readable by everyone" on public.%I for select using (true)', t);
+    execute format('drop policy if exists "admins manage" on public.%I', t);
     execute format('create policy "admins manage" on public.%I for all to authenticated using (public.has_role(auth.uid(),''admin'')) with check (public.has_role(auth.uid(),''admin''))', t);
-    execute format('grant insert, update, delete on public.%I to authenticated', t);
   end loop;
 end $$;
 
@@ -162,8 +190,11 @@ create table if not exists public.quiz_attempts (
 grant select, insert on public.quiz_attempts to authenticated;
 grant all on public.quiz_attempts to service_role;
 alter table public.quiz_attempts enable row level security;
+drop policy if exists "own attempts read" on public.quiz_attempts;
 create policy "own attempts read" on public.quiz_attempts for select to authenticated using (auth.uid() = user_id);
+drop policy if exists "own attempts insert" on public.quiz_attempts;
 create policy "own attempts insert" on public.quiz_attempts for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists "admin attempts read" on public.quiz_attempts;
 create policy "admin attempts read" on public.quiz_attempts for select to authenticated using (public.has_role(auth.uid(),'admin'));
 
 -- ── XP, achievements ─────────────────────────────────────────────────────────
@@ -178,6 +209,7 @@ create table if not exists public.xp_history (
 grant select on public.xp_history to authenticated;
 grant all on public.xp_history to service_role;
 alter table public.xp_history enable row level security;
+drop policy if exists "own xp read" on public.xp_history;
 create policy "own xp read" on public.xp_history for select to authenticated using (auth.uid() = user_id);
 
 create table if not exists public.achievements (
@@ -191,6 +223,7 @@ create table if not exists public.achievements (
 grant select on public.achievements to authenticated, anon;
 grant all on public.achievements to service_role;
 alter table public.achievements enable row level security;
+drop policy if exists "achievements readable" on public.achievements;
 create policy "achievements readable" on public.achievements for select using (true);
 
 create table if not exists public.user_achievements (
@@ -203,6 +236,7 @@ create table if not exists public.user_achievements (
 grant select on public.user_achievements to authenticated;
 grant all on public.user_achievements to service_role;
 alter table public.user_achievements enable row level security;
+drop policy if exists "own achievements read" on public.user_achievements;
 create policy "own achievements read" on public.user_achievements for select to authenticated using (auth.uid() = user_id);
 
 -- ── Live quiz blueprints ─────────────────────────────────────────────────────
@@ -222,6 +256,7 @@ create table if not exists public.live_quiz_blueprints (
   updated_at timestamptz not null default now(),
   unique (class_level, subject_id)
 );
+drop trigger if exists trg_lq_blueprints_updated on public.live_quiz_blueprints;
 create trigger trg_lq_blueprints_updated before update on public.live_quiz_blueprints for each row execute function public.set_updated_at();
 
 create table if not exists public.live_quiz_blueprint_topics (
@@ -249,6 +284,7 @@ begin
     execute format('grant select, insert, update, delete on public.%I to authenticated', t);
     execute format('grant all on public.%I to service_role', t);
     execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists "admins manage" on public.%I', t);
     execute format('create policy "admins manage" on public.%I for all to authenticated using (public.has_role(auth.uid(),''admin'')) with check (public.has_role(auth.uid(),''admin''))', t);
   end loop;
 end $$;
@@ -271,13 +307,16 @@ create table if not exists public.live_quizzes (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+drop trigger if exists trg_live_quizzes_updated on public.live_quizzes;
 create trigger trg_live_quizzes_updated before update on public.live_quizzes for each row execute function public.set_updated_at();
 grant select on public.live_quizzes to authenticated, anon;
+grant insert, update, delete on public.live_quizzes to authenticated;
 grant all on public.live_quizzes to service_role;
 alter table public.live_quizzes enable row level security;
+drop policy if exists "live quizzes readable" on public.live_quizzes;
 create policy "live quizzes readable" on public.live_quizzes for select using (true);
+drop policy if exists "admins manage live quizzes" on public.live_quizzes;
 create policy "admins manage live quizzes" on public.live_quizzes for all to authenticated using (public.has_role(auth.uid(),'admin')) with check (public.has_role(auth.uid(),'admin'));
-grant insert, update, delete on public.live_quizzes to authenticated;
 
 create table if not exists public.live_quiz_questions (
   id uuid primary key default gen_random_uuid(),
@@ -291,6 +330,7 @@ create table if not exists public.live_quiz_questions (
 grant select on public.live_quiz_questions to authenticated;
 grant all on public.live_quiz_questions to service_role;
 alter table public.live_quiz_questions enable row level security;
+drop policy if exists "live quiz questions readable" on public.live_quiz_questions;
 create policy "live quiz questions readable" on public.live_quiz_questions for select to authenticated using (true);
 
 create table if not exists public.live_quiz_participants (
@@ -310,6 +350,7 @@ create table if not exists public.live_quiz_participants (
 grant select on public.live_quiz_participants to authenticated;
 grant all on public.live_quiz_participants to service_role;
 alter table public.live_quiz_participants enable row level security;
+drop policy if exists "participants readable" on public.live_quiz_participants;
 create policy "participants readable" on public.live_quiz_participants for select to authenticated using (true);
 
 create table if not exists public.live_quiz_answers (
@@ -327,6 +368,7 @@ create table if not exists public.live_quiz_answers (
 grant select on public.live_quiz_answers to authenticated;
 grant all on public.live_quiz_answers to service_role;
 alter table public.live_quiz_answers enable row level security;
+drop policy if exists "own live answers read" on public.live_quiz_answers;
 create policy "own live answers read" on public.live_quiz_answers for select to authenticated using (auth.uid() = user_id);
 
 create table if not exists public.live_quiz_streaks (
@@ -340,10 +382,12 @@ create table if not exists public.live_quiz_streaks (
   updated_at timestamptz not null default now(),
   unique (user_id, class_level)
 );
+drop trigger if exists trg_lq_streaks_updated on public.live_quiz_streaks;
 create trigger trg_lq_streaks_updated before update on public.live_quiz_streaks for each row execute function public.set_updated_at();
 grant select on public.live_quiz_streaks to authenticated;
 grant all on public.live_quiz_streaks to service_role;
 alter table public.live_quiz_streaks enable row level security;
+drop policy if exists "own streaks read" on public.live_quiz_streaks;
 create policy "own streaks read" on public.live_quiz_streaks for select to authenticated using (auth.uid() = user_id);
 
 -- ── Reports & push ───────────────────────────────────────────────────────────
@@ -362,12 +406,16 @@ create table if not exists public.question_reports (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+drop trigger if exists question_reports_set_updated_at on public.question_reports;
 create trigger question_reports_set_updated_at before update on public.question_reports for each row execute function public.set_updated_at();
 grant select, insert, update on public.question_reports to authenticated;
 grant all on public.question_reports to service_role;
 alter table public.question_reports enable row level security;
+drop policy if exists "own reports read" on public.question_reports;
 create policy "own reports read" on public.question_reports for select to authenticated using (auth.uid() = reporter_id);
+drop policy if exists "own reports insert" on public.question_reports;
 create policy "own reports insert" on public.question_reports for insert to authenticated with check (auth.uid() = reporter_id);
+drop policy if exists "admins manage reports" on public.question_reports;
 create policy "admins manage reports" on public.question_reports for all to authenticated using (public.has_role(auth.uid(),'admin')) with check (public.has_role(auth.uid(),'admin'));
 
 create table if not exists public.push_subscriptions (
@@ -381,8 +429,10 @@ create table if not exists public.push_subscriptions (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+drop trigger if exists push_subscriptions_set_updated_at on public.push_subscriptions;
 create trigger push_subscriptions_set_updated_at before update on public.push_subscriptions for each row execute function public.set_updated_at();
 grant select, insert, update, delete on public.push_subscriptions to authenticated;
 grant all on public.push_subscriptions to service_role;
 alter table public.push_subscriptions enable row level security;
+drop policy if exists "own push subs" on public.push_subscriptions;
 create policy "own push subs" on public.push_subscriptions for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
