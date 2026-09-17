@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Users, ArrowRight, Loader2, FileText, Flag } from "lucide-react";
+import { Users, ArrowRight, Loader2, FileText, Flag, BookOpen } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { supabase } from "@/integrations/supabase/client";
 
