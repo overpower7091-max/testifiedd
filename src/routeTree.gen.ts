@@ -27,6 +27,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSubjectIdRouteImport } from './routes/_authenticated/subject.$id'
 import { Route as AuthenticatedPracticeChapterIdRouteImport } from './routes/_authenticated/practice.$chapterId'
 import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin.reports'
+import { Route as AuthenticatedAdminMaterialsRouteImport } from './routes/_authenticated/admin.materials'
 import { Route as AuthenticatedAdminLiveQuizRouteImport } from './routes/_authenticated/admin.live-quiz'
 import { Route as AuthenticatedAdminContentIndexRouteImport } from './routes/_authenticated/admin.content.index'
 import { Route as ApiPublicHooksLiveQuizTickRouteImport } from './routes/api/public/hooks/live-quiz-tick'
@@ -129,6 +130,12 @@ const AuthenticatedAdminReportsRoute =
     path: '/reports',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminMaterialsRoute =
+  AuthenticatedAdminMaterialsRouteImport.update({
+    id: '/materials',
+    path: '/materials',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminLiveQuizRoute =
   AuthenticatedAdminLiveQuizRouteImport.update({
     id: '/live-quiz',
@@ -199,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/subjects': typeof AuthenticatedSubjectsRoute
   '/admin/live-quiz': typeof AuthenticatedAdminLiveQuizRoute
+  '/admin/materials': typeof AuthenticatedAdminMaterialsRoute
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/practice/$chapterId': typeof AuthenticatedPracticeChapterIdRoute
   '/subject/$id': typeof AuthenticatedSubjectIdRoute
@@ -226,6 +234,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/subjects': typeof AuthenticatedSubjectsRoute
   '/admin/live-quiz': typeof AuthenticatedAdminLiveQuizRoute
+  '/admin/materials': typeof AuthenticatedAdminMaterialsRoute
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/practice/$chapterId': typeof AuthenticatedPracticeChapterIdRoute
   '/subject/$id': typeof AuthenticatedSubjectIdRoute
@@ -256,6 +265,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/subjects': typeof AuthenticatedSubjectsRoute
   '/_authenticated/admin/live-quiz': typeof AuthenticatedAdminLiveQuizRoute
+  '/_authenticated/admin/materials': typeof AuthenticatedAdminMaterialsRoute
   '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/_authenticated/practice/$chapterId': typeof AuthenticatedPracticeChapterIdRoute
   '/_authenticated/subject/$id': typeof AuthenticatedSubjectIdRoute
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/subjects'
     | '/admin/live-quiz'
+    | '/admin/materials'
     | '/admin/reports'
     | '/practice/$chapterId'
     | '/subject/$id'
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/subjects'
     | '/admin/live-quiz'
+    | '/admin/materials'
     | '/admin/reports'
     | '/practice/$chapterId'
     | '/subject/$id'
@@ -342,6 +354,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/subjects'
     | '/_authenticated/admin/live-quiz'
+    | '/_authenticated/admin/materials'
     | '/_authenticated/admin/reports'
     | '/_authenticated/practice/$chapterId'
     | '/_authenticated/subject/$id'
@@ -493,6 +506,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminReportsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/materials': {
+      id: '/_authenticated/admin/materials'
+      path: '/materials'
+      fullPath: '/admin/materials'
+      preLoaderRoute: typeof AuthenticatedAdminMaterialsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/live-quiz': {
       id: '/_authenticated/admin/live-quiz'
       path: '/live-quiz'
@@ -561,6 +581,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminLiveQuizRoute: typeof AuthenticatedAdminLiveQuizRoute
+  AuthenticatedAdminMaterialsRoute: typeof AuthenticatedAdminMaterialsRoute
   AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminClassLevelRoute: typeof AuthenticatedAdminClassLevelRoute
@@ -572,6 +593,7 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminLiveQuizRoute: AuthenticatedAdminLiveQuizRoute,
+  AuthenticatedAdminMaterialsRoute: AuthenticatedAdminMaterialsRoute,
   AuthenticatedAdminReportsRoute: AuthenticatedAdminReportsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminClassLevelRoute: AuthenticatedAdminClassLevelRoute,
