@@ -18,6 +18,7 @@ import { Route as AuthenticatedSubjectsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedMockRouteImport } from './routes/_authenticated/mock'
+import { Route as AuthenticatedMaterialsRouteImport } from './routes/_authenticated/materials'
 import { Route as AuthenticatedLiveRouteImport } from './routes/_authenticated/live'
 import { Route as AuthenticatedLeaderboardRouteImport } from './routes/_authenticated/leaderboard'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
@@ -27,6 +28,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSubjectIdRouteImport } from './routes/_authenticated/subject.$id'
 import { Route as AuthenticatedPracticeChapterIdRouteImport } from './routes/_authenticated/practice.$chapterId'
 import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin.reports'
+import { Route as AuthenticatedAdminMaterialsRouteImport } from './routes/_authenticated/admin.materials'
 import { Route as AuthenticatedAdminLiveQuizRouteImport } from './routes/_authenticated/admin.live-quiz'
 import { Route as AuthenticatedAdminContentIndexRouteImport } from './routes/_authenticated/admin.content.index'
 import { Route as ApiPublicHooksLiveQuizTickRouteImport } from './routes/api/public/hooks/live-quiz-tick'
@@ -81,6 +83,11 @@ const AuthenticatedMockRoute = AuthenticatedMockRouteImport.update({
   path: '/mock',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMaterialsRoute = AuthenticatedMaterialsRouteImport.update({
+  id: '/materials',
+  path: '/materials',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedLiveRoute = AuthenticatedLiveRouteImport.update({
   id: '/live',
   path: '/live',
@@ -127,6 +134,12 @@ const AuthenticatedAdminReportsRoute =
   AuthenticatedAdminReportsRouteImport.update({
     id: '/reports',
     path: '/reports',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminMaterialsRoute =
+  AuthenticatedAdminMaterialsRouteImport.update({
+    id: '/materials',
+    path: '/materials',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminLiveQuizRoute =
@@ -194,11 +207,13 @@ export interface FileRoutesByFullPath {
   '/home': typeof AuthenticatedHomeRoute
   '/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/live': typeof AuthenticatedLiveRoute
+  '/materials': typeof AuthenticatedMaterialsRoute
   '/mock': typeof AuthenticatedMockRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/subjects': typeof AuthenticatedSubjectsRoute
   '/admin/live-quiz': typeof AuthenticatedAdminLiveQuizRoute
+  '/admin/materials': typeof AuthenticatedAdminMaterialsRoute
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/practice/$chapterId': typeof AuthenticatedPracticeChapterIdRoute
   '/subject/$id': typeof AuthenticatedSubjectIdRoute
@@ -221,11 +236,13 @@ export interface FileRoutesByTo {
   '/home': typeof AuthenticatedHomeRoute
   '/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/live': typeof AuthenticatedLiveRoute
+  '/materials': typeof AuthenticatedMaterialsRoute
   '/mock': typeof AuthenticatedMockRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/subjects': typeof AuthenticatedSubjectsRoute
   '/admin/live-quiz': typeof AuthenticatedAdminLiveQuizRoute
+  '/admin/materials': typeof AuthenticatedAdminMaterialsRoute
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/practice/$chapterId': typeof AuthenticatedPracticeChapterIdRoute
   '/subject/$id': typeof AuthenticatedSubjectIdRoute
@@ -251,11 +268,13 @@ export interface FileRoutesById {
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/_authenticated/live': typeof AuthenticatedLiveRoute
+  '/_authenticated/materials': typeof AuthenticatedMaterialsRoute
   '/_authenticated/mock': typeof AuthenticatedMockRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/subjects': typeof AuthenticatedSubjectsRoute
   '/_authenticated/admin/live-quiz': typeof AuthenticatedAdminLiveQuizRoute
+  '/_authenticated/admin/materials': typeof AuthenticatedAdminMaterialsRoute
   '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/_authenticated/practice/$chapterId': typeof AuthenticatedPracticeChapterIdRoute
   '/_authenticated/subject/$id': typeof AuthenticatedSubjectIdRoute
@@ -281,11 +300,13 @@ export interface FileRouteTypes {
     | '/home'
     | '/leaderboard'
     | '/live'
+    | '/materials'
     | '/mock'
     | '/onboarding'
     | '/profile'
     | '/subjects'
     | '/admin/live-quiz'
+    | '/admin/materials'
     | '/admin/reports'
     | '/practice/$chapterId'
     | '/subject/$id'
@@ -308,11 +329,13 @@ export interface FileRouteTypes {
     | '/home'
     | '/leaderboard'
     | '/live'
+    | '/materials'
     | '/mock'
     | '/onboarding'
     | '/profile'
     | '/subjects'
     | '/admin/live-quiz'
+    | '/admin/materials'
     | '/admin/reports'
     | '/practice/$chapterId'
     | '/subject/$id'
@@ -337,11 +360,13 @@ export interface FileRouteTypes {
     | '/_authenticated/home'
     | '/_authenticated/leaderboard'
     | '/_authenticated/live'
+    | '/_authenticated/materials'
     | '/_authenticated/mock'
     | '/_authenticated/onboarding'
     | '/_authenticated/profile'
     | '/_authenticated/subjects'
     | '/_authenticated/admin/live-quiz'
+    | '/_authenticated/admin/materials'
     | '/_authenticated/admin/reports'
     | '/_authenticated/practice/$chapterId'
     | '/_authenticated/subject/$id'
@@ -430,6 +455,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMockRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/materials': {
+      id: '/_authenticated/materials'
+      path: '/materials'
+      fullPath: '/materials'
+      preLoaderRoute: typeof AuthenticatedMaterialsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/live': {
       id: '/_authenticated/live'
       path: '/live'
@@ -491,6 +523,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/admin/reports'
       preLoaderRoute: typeof AuthenticatedAdminReportsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/materials': {
+      id: '/_authenticated/admin/materials'
+      path: '/materials'
+      fullPath: '/admin/materials'
+      preLoaderRoute: typeof AuthenticatedAdminMaterialsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/live-quiz': {
@@ -561,6 +600,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminLiveQuizRoute: typeof AuthenticatedAdminLiveQuizRoute
+  AuthenticatedAdminMaterialsRoute: typeof AuthenticatedAdminMaterialsRoute
   AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminClassLevelRoute: typeof AuthenticatedAdminClassLevelRoute
@@ -572,6 +612,7 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminLiveQuizRoute: AuthenticatedAdminLiveQuizRoute,
+  AuthenticatedAdminMaterialsRoute: AuthenticatedAdminMaterialsRoute,
   AuthenticatedAdminReportsRoute: AuthenticatedAdminReportsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminClassLevelRoute: AuthenticatedAdminClassLevelRoute,
@@ -591,6 +632,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedLeaderboardRoute: typeof AuthenticatedLeaderboardRoute
   AuthenticatedLiveRoute: typeof AuthenticatedLiveRoute
+  AuthenticatedMaterialsRoute: typeof AuthenticatedMaterialsRoute
   AuthenticatedMockRoute: typeof AuthenticatedMockRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -607,6 +649,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedLeaderboardRoute: AuthenticatedLeaderboardRoute,
   AuthenticatedLiveRoute: AuthenticatedLiveRoute,
+  AuthenticatedMaterialsRoute: AuthenticatedMaterialsRoute,
   AuthenticatedMockRoute: AuthenticatedMockRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,

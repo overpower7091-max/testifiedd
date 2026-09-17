@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Users, ArrowRight, Loader2, FileText, Flag } from "lucide-react";
+import { Users, ArrowRight, Loader2, FileText, Flag, BookOpen } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -56,6 +56,9 @@ function AdminHome() {
             </Link>
             <Link to="/admin/reports" className="rounded-full glass px-4 py-2 text-sm font-medium inline-flex items-center gap-2 hover:text-primary">
               <Flag className="h-4 w-4" /> Question reports
+            </Link>
+            <Link to="/admin/materials" className="rounded-full glass px-4 py-2 text-sm font-medium inline-flex items-center gap-2 hover:text-primary">
+              <BookOpen className="h-4 w-4" /> Study materials
             </Link>
           </div>
         </div>

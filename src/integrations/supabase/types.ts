@@ -825,6 +825,62 @@ export type Database = {
           },
         ]
       }
+      study_materials: {
+        Row: {
+          class_level: Database["public"]["Enums"]["class_level"]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          kind: string
+          subject_id: string | null
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          class_level: Database["public"]["Enums"]["class_level"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          kind?: string
+          subject_id?: string | null
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          class_level?: Database["public"]["Enums"]["class_level"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          kind?: string
+          subject_id?: string | null
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_materials_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subjects: {
         Row: {
           class_id: string

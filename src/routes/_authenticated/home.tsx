@@ -261,6 +261,7 @@ function Home() {
               <QuickAction to="/live" tone="danger" icon={<LiveIcon className="h-[19px] w-[19px]" />} title="Live Quiz" desc="Scheduled mocks" />
               <QuickAction to="/mock" tone="brand2" icon={<AiSolverIcon className="h-[19px] w-[19px]" />} title="AI Doubt Solver" desc="Coming soon" />
               <QuickAction to="/leaderboard" tone="warning" icon={<LeaderboardIcon className="h-[19px] w-[19px]" />} title="Leaderboard" desc="Compete in your class" />
+              <QuickAction to="/materials" tone="brand2" icon={<BookOpen className="h-[19px] w-[19px]" />} title="Study Materials" desc="Notes, videos & links" />
               <QuickAction to="/history" tone="success" icon={<HistoryIcon className="h-[19px] w-[19px]" />} title="Quiz History" desc="Review attempts" />
             </div>
           </div>
