@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppHeader } from "@/components/app-header";
-import { QuestionImages } from "@/lib/question-images";
+import { QuestionImages, resolveQuestionImages } from "@/lib/question-images";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getTodaysLiveQuiz,
@@ -147,11 +147,16 @@ function QuizRunner({
     setSession(s);
     setStatus(s.status);
     // Preload any question images before the quiz starts
-    for (const q of s.questions) {
-      for (const src of q.images ?? []) {
-        const img = new Image();
-        img.src = src;
-      }
+    const allPaths = s.questions.flatMap((q) => q.images ?? []);
+    if (allPaths.length) {
+      resolveQuestionImages(allPaths)
+        .then((urls) => {
+          for (const src of urls) {
+            const img = new Image();
+            img.src = src;
+          }
+        })
+        .catch(() => null);
     }
   }, []);
 
