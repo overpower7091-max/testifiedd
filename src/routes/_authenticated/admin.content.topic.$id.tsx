@@ -48,13 +48,14 @@ function ManageTopic() {
     setBankId(bId);
     if (bId) {
       const { data: qs } = await supabase.from("questions")
-        .select("id, question, options, correct_answer, explanation, difficulty")
+        .select("id, question, options, correct_answer, explanation, difficulty, images")
         .eq("question_bank_id", bId)
         .order("created_at", { ascending: false });
       setQuestions((qs ?? []).map((q: any) => ({
         ...q,
         options: Array.isArray(q.options) ? q.options : [],
         correct_answer: typeof q.correct_answer === "number" ? q.correct_answer : Number(q.correct_answer ?? 0),
+        images: Array.isArray(q.images) ? q.images : [],
       })));
     } else {
       setQuestions([]);
@@ -78,12 +79,37 @@ function ManageTopic() {
       correct_answer: form.correct,
       explanation: form.explanation || null,
       difficulty: form.difficulty as any,
+      images: form.images,
     });
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("MCQ added");
-    setForm({ ...EMPTY, options: ["", "", "", ""] });
+    setForm({ ...EMPTY, options: ["", "", "", ""], images: [] });
     load();
+  };
+
+  const pickImages = async (files: FileList | null, onDone: (paths: string[]) => void) => {
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      const paths: string[] = [];
+      for (const f of Array.from(files)) {
+        if (!f.type.startsWith("image/")) { toast.error(`${f.name} is not an image`); continue; }
+        if (f.size > 10 * 1024 * 1024) { toast.error(`${f.name} is larger than 10MB`); continue; }
+        paths.push(await uploadQuestionImage(f));
+      }
+      if (paths.length) onDone(paths);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Image upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const setQuestionImages = async (qid: string, images: string[]) => {
+    const { error } = await supabase.from("questions").update({ images }).eq("id", qid);
+    if (error) return toast.error(error.message);
+    setQuestions((prev) => prev.map((q) => (q.id === qid ? { ...q, images } : q)));
   };
 
   const remove = async (qid: string) => {
