@@ -406,7 +406,7 @@ const QuestionCard = memo(function QuestionCard({
   onSelect,
   liveQuizId,
 }: {
-  question: { id: string; text: string; options: string[]; difficulty: string } | null;
+  question: { id: string; text: string; options: string[]; difficulty: string; images?: string[] } | null;
   selected: number | null;
   locked: boolean;
   submitting: boolean;
