@@ -4,6 +4,7 @@ import { Loader2, Clock, CheckCircle2, XCircle, ArrowRight, Trophy, RotateCcw } 
 import { AppHeader } from "@/components/app-header";
 import { Latex } from "@/components/latex";
 import { ReportQuestionDialog } from "@/components/report-question-dialog";
+import { QuestionImages } from "@/lib/question-images";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/practice/topic/$topicId")({

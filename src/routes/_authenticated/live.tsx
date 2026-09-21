@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppHeader } from "@/components/app-header";
+import { QuestionImages } from "@/lib/question-images";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getTodaysLiveQuiz,

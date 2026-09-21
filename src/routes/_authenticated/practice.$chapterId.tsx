@@ -4,6 +4,7 @@ import { Loader2, Clock, CheckCircle2, XCircle, ArrowRight, Trophy, RotateCcw } 
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { ReportQuestionDialog } from "@/components/report-question-dialog";
+import { QuestionImages } from "@/lib/question-images";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/practice/$chapterId")({
