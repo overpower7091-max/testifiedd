@@ -419,6 +419,7 @@ const QuestionCard = memo(function QuestionCard({
     <div className="animate-in fade-in duration-200">
       <div className="mt-6 text-lg leading-relaxed">
         <Latex>{question.text}</Latex>
+        <QuestionImages paths={question.images} />
       </div>
       <div className="mt-5 space-y-2">
         {question.options.map((opt: string, idx: number) => {

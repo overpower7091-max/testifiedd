@@ -42,7 +42,7 @@ function Practice() {
       const bankIds = (banks ?? []).map((b: any) => b.id);
       if (!bankIds.length) { setLoading(false); return; }
       const { data: qs } = await supabase.from("questions")
-        .select("id, question, options, correct_answer, explanation, difficulty")
+        .select("id, question, options, correct_answer, explanation, difficulty, images")
         .in("question_bank_id", bankIds).limit(20);
       const cleaned = (qs ?? []).map((q: any) => ({
         ...q,
@@ -167,6 +167,7 @@ function Practice() {
             <span className="capitalize">{q.difficulty}</span>
           </div>
           <h1 className="mt-3 text-xl sm:text-2xl font-semibold tracking-tight leading-snug">{q.question}</h1>
+          <QuestionImages paths={(q as any).images} />
 
           <div className="mt-5 space-y-2">
             {q.options.map((opt: string, i: number) => {
