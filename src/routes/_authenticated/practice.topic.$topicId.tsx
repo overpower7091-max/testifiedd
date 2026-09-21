@@ -4,6 +4,7 @@ import { Loader2, Clock, CheckCircle2, XCircle, ArrowRight, Trophy, RotateCcw } 
 import { AppHeader } from "@/components/app-header";
 import { Latex } from "@/components/latex";
 import { ReportQuestionDialog } from "@/components/report-question-dialog";
+import { QuestionImages } from "@/lib/question-images";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/practice/topic/$topicId")({
@@ -48,7 +49,7 @@ function TopicPractice() {
     const bankIds = (banks ?? []).map((b: any) => b.id);
     if (!bankIds.length) { setQuestions([]); return; }
     const { data: qs } = await supabase.from("questions")
-      .select("id, question, options, correct_answer, explanation, difficulty")
+      .select("id, question, options, correct_answer, explanation, difficulty, images")
       .in("question_bank_id", bankIds);
     const cleaned = (qs ?? []).map((q: any) => ({
       ...q,
@@ -190,6 +191,7 @@ function TopicPractice() {
           <h1 className="mt-3 text-xl sm:text-2xl font-semibold tracking-tight leading-snug">
             <Latex>{q.question}</Latex>
           </h1>
+          <QuestionImages paths={(q as any).images} />
 
           <div className="mt-5 space-y-2">
             {q.options.map((opt: string, i: number) => {

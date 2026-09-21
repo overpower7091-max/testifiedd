@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppHeader } from "@/components/app-header";
+import { QuestionImages, resolveQuestionImages } from "@/lib/question-images";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getTodaysLiveQuiz,
@@ -146,11 +147,16 @@ function QuizRunner({
     setSession(s);
     setStatus(s.status);
     // Preload any question images before the quiz starts
-    for (const q of s.questions) {
-      for (const src of q.images ?? []) {
-        const img = new Image();
-        img.src = src;
-      }
+    const allPaths = s.questions.flatMap((q) => q.images ?? []);
+    if (allPaths.length) {
+      resolveQuestionImages(allPaths)
+        .then((urls) => {
+          for (const src of urls) {
+            const img = new Image();
+            img.src = src;
+          }
+        })
+        .catch(() => null);
     }
   }, []);
 
@@ -405,7 +411,7 @@ const QuestionCard = memo(function QuestionCard({
   onSelect,
   liveQuizId,
 }: {
-  question: { id: string; text: string; options: string[]; difficulty: string } | null;
+  question: { id: string; text: string; options: string[]; difficulty: string; images?: string[] } | null;
   selected: number | null;
   locked: boolean;
   submitting: boolean;
@@ -419,6 +425,7 @@ const QuestionCard = memo(function QuestionCard({
     <div className="animate-in fade-in duration-200">
       <div className="mt-6 text-lg leading-relaxed">
         <Latex>{question.text}</Latex>
+        <QuestionImages paths={question.images} />
       </div>
       <div className="mt-5 space-y-2">
         {question.options.map((opt: string, idx: number) => {

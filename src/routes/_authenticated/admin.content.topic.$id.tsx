@@ -1,21 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Eye, Sparkles, Check, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Plus, Trash2, Eye, Sparkles, Check, X, ChevronDown, ChevronUp, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { AppHeader } from "@/components/app-header";
 import { Latex } from "@/components/latex";
 import { supabase } from "@/integrations/supabase/client";
 import { parseMCQs } from "@/lib/mcq-import.functions";
+import { QuestionImages, uploadQuestionImage } from "@/lib/question-images";
 
 export const Route = createFileRoute("/_authenticated/admin/content/topic/$id")({
   head: () => ({ meta: [{ title: "Manage MCQs — Admin" }] }),
   component: ManageTopic,
 });
 
-type Question = { id: string; question: string; options: string[]; correct_answer: number; explanation: string | null; difficulty: string };
+type Question = { id: string; question: string; options: string[]; correct_answer: number; explanation: string | null; difficulty: string; images: string[] };
 
-const EMPTY = { question: "", options: ["", "", "", ""], correct: 0, explanation: "", difficulty: "medium" };
+const EMPTY = { question: "", options: ["", "", "", ""], correct: 0, explanation: "", difficulty: "medium", images: [] as string[] };
 
 type Draft = { question: string; options: string[]; correct: number; explanation: string; difficulty: string; _keep: boolean; _open: boolean };
 
@@ -26,8 +27,9 @@ function ManageTopic() {
   const [bankId, setBankId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<typeof EMPTY>({ ...EMPTY, options: [...EMPTY.options] });
+  const [form, setForm] = useState<typeof EMPTY>({ ...EMPTY, options: [...EMPTY.options], images: [] });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [parsing, setParsing] = useState(false);
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -46,13 +48,14 @@ function ManageTopic() {
     setBankId(bId);
     if (bId) {
       const { data: qs } = await supabase.from("questions")
-        .select("id, question, options, correct_answer, explanation, difficulty")
+        .select("id, question, options, correct_answer, explanation, difficulty, images")
         .eq("question_bank_id", bId)
         .order("created_at", { ascending: false });
       setQuestions((qs ?? []).map((q: any) => ({
         ...q,
         options: Array.isArray(q.options) ? q.options : [],
         correct_answer: typeof q.correct_answer === "number" ? q.correct_answer : Number(q.correct_answer ?? 0),
+        images: Array.isArray(q.images) ? q.images : [],
       })));
     } else {
       setQuestions([]);
@@ -76,12 +79,37 @@ function ManageTopic() {
       correct_answer: form.correct,
       explanation: form.explanation || null,
       difficulty: form.difficulty as any,
+      images: form.images,
     });
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("MCQ added");
-    setForm({ ...EMPTY, options: ["", "", "", ""] });
+    setForm({ ...EMPTY, options: ["", "", "", ""], images: [] });
     load();
+  };
+
+  const pickImages = async (files: FileList | null, onDone: (paths: string[]) => void) => {
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      const paths: string[] = [];
+      for (const f of Array.from(files)) {
+        if (!f.type.startsWith("image/")) { toast.error(`${f.name} is not an image`); continue; }
+        if (f.size > 10 * 1024 * 1024) { toast.error(`${f.name} is larger than 10MB`); continue; }
+        paths.push(await uploadQuestionImage(f));
+      }
+      if (paths.length) onDone(paths);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Image upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const setQuestionImages = async (qid: string, images: string[]) => {
+    const { error } = await supabase.from("questions").update({ images }).eq("id", qid);
+    if (error) return toast.error(error.message);
+    setQuestions((prev) => prev.map((q) => (q.id === qid ? { ...q, images } : q)));
   };
 
   const remove = async (qid: string) => {
@@ -262,6 +290,23 @@ function ManageTopic() {
             <textarea value={form.explanation} onChange={(e) => setForm({ ...form, explanation: e.target.value })}
               placeholder="Explanation (optional)"
               className="w-full min-h-16 glass-tint rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="text-xs text-muted-foreground">Images (optional) — diagrams for geometry / physics</div>
+                <label className={`ml-auto glass-tint rounded-full px-3 py-1.5 text-xs inline-flex items-center gap-1 cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+                  {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />} Add image
+                  <input type="file" accept="image/*" multiple className="hidden"
+                    onChange={(e) => { pickImages(e.target.files, (paths) => setForm((f) => ({ ...f, images: [...f.images, ...paths] }))); e.target.value = ""; }} />
+                </label>
+              </div>
+              {form.images.length > 0 && (
+                <div className="flex flex-wrap items-start gap-2">
+                  <QuestionImages paths={form.images} className="mt-0" />
+                  <button onClick={() => setForm({ ...form, images: [] })}
+                    className="glass-tint rounded-full px-3 py-1 text-xs text-red-500">Remove all images</button>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
                 className="glass-tint rounded-xl px-3 py-2 text-sm outline-none">
@@ -280,6 +325,7 @@ function ManageTopic() {
             <div className="text-sm font-semibold inline-flex items-center gap-1"><Eye className="h-4 w-4" /> Live preview</div>
             <div className="glass-tint rounded-2xl p-4">
               <div className="text-sm font-medium"><Latex>{form.question || "Question will render here…"}</Latex></div>
+              <QuestionImages paths={form.images} />
               <div className="mt-3 space-y-2">
                 {form.options.map((o, i) => (
                   <div key={i} className={`glass rounded-xl px-3 py-2 text-sm flex items-center gap-2 ${form.correct === i ? "ring-1 ring-emerald-500/40" : ""}`}>
@@ -317,6 +363,17 @@ function ManageTopic() {
                             <span className="flex-1"><Latex>{o}</Latex></span>
                           </div>
                         ))}
+                      </div>
+                      <QuestionImages paths={q.images} />
+                      <div className="mt-2 flex items-center gap-2">
+                        <label className={`glass rounded-full px-3 py-1 text-xs inline-flex items-center gap-1 cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+                          <ImagePlus className="h-3.5 w-3.5" /> {q.images.length ? "Add another image" : "Add image"}
+                          <input type="file" accept="image/*" multiple className="hidden"
+                            onChange={(e) => { pickImages(e.target.files, (paths) => setQuestionImages(q.id, [...q.images, ...paths])); e.target.value = ""; }} />
+                        </label>
+                        {q.images.length > 0 && (
+                          <button onClick={() => setQuestionImages(q.id, [])} className="glass rounded-full px-3 py-1 text-xs text-red-500">Remove images</button>
+                        )}
                       </div>
                     </div>
                     <button onClick={() => remove(q.id)} className="glass rounded-full p-2 text-red-500 hover:scale-105 transition-transform"><Trash2 className="h-3.5 w-3.5" /></button>
