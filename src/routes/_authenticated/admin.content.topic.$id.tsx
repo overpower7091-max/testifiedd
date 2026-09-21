@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Eye, Sparkles, Check, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Plus, Trash2, Eye, Sparkles, Check, X, ChevronDown, ChevronUp, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { AppHeader } from "@/components/app-header";
 import { Latex } from "@/components/latex";
 import { supabase } from "@/integrations/supabase/client";
 import { parseMCQs } from "@/lib/mcq-import.functions";
+import { QuestionImages, uploadQuestionImage } from "@/lib/question-images";
 
 export const Route = createFileRoute("/_authenticated/admin/content/topic/$id")({
   head: () => ({ meta: [{ title: "Manage MCQs — Admin" }] }),
