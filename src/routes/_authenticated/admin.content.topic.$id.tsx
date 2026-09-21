@@ -290,6 +290,23 @@ function ManageTopic() {
             <textarea value={form.explanation} onChange={(e) => setForm({ ...form, explanation: e.target.value })}
               placeholder="Explanation (optional)"
               className="w-full min-h-16 glass-tint rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="text-xs text-muted-foreground">Images (optional) — diagrams for geometry / physics</div>
+                <label className={`ml-auto glass-tint rounded-full px-3 py-1.5 text-xs inline-flex items-center gap-1 cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+                  {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />} Add image
+                  <input type="file" accept="image/*" multiple className="hidden"
+                    onChange={(e) => { pickImages(e.target.files, (paths) => setForm((f) => ({ ...f, images: [...f.images, ...paths] }))); e.target.value = ""; }} />
+                </label>
+              </div>
+              {form.images.length > 0 && (
+                <div className="flex flex-wrap items-start gap-2">
+                  <QuestionImages paths={form.images} className="mt-0" />
+                  <button onClick={() => setForm({ ...form, images: [] })}
+                    className="glass-tint rounded-full px-3 py-1 text-xs text-red-500">Remove all images</button>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
                 className="glass-tint rounded-xl px-3 py-2 text-sm outline-none">
@@ -308,6 +325,7 @@ function ManageTopic() {
             <div className="text-sm font-semibold inline-flex items-center gap-1"><Eye className="h-4 w-4" /> Live preview</div>
             <div className="glass-tint rounded-2xl p-4">
               <div className="text-sm font-medium"><Latex>{form.question || "Question will render here…"}</Latex></div>
+              <QuestionImages paths={form.images} />
               <div className="mt-3 space-y-2">
                 {form.options.map((o, i) => (
                   <div key={i} className={`glass rounded-xl px-3 py-2 text-sm flex items-center gap-2 ${form.correct === i ? "ring-1 ring-emerald-500/40" : ""}`}>
@@ -345,6 +363,17 @@ function ManageTopic() {
                             <span className="flex-1"><Latex>{o}</Latex></span>
                           </div>
                         ))}
+                      </div>
+                      <QuestionImages paths={q.images} />
+                      <div className="mt-2 flex items-center gap-2">
+                        <label className={`glass rounded-full px-3 py-1 text-xs inline-flex items-center gap-1 cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+                          <ImagePlus className="h-3.5 w-3.5" /> {q.images.length ? "Add another image" : "Add image"}
+                          <input type="file" accept="image/*" multiple className="hidden"
+                            onChange={(e) => { pickImages(e.target.files, (paths) => setQuestionImages(q.id, [...q.images, ...paths])); e.target.value = ""; }} />
+                        </label>
+                        {q.images.length > 0 && (
+                          <button onClick={() => setQuestionImages(q.id, [])} className="glass rounded-full px-3 py-1 text-xs text-red-500">Remove images</button>
+                        )}
                       </div>
                     </div>
                     <button onClick={() => remove(q.id)} className="glass rounded-full p-2 text-red-500 hover:scale-105 transition-transform"><Trash2 className="h-3.5 w-3.5" /></button>
