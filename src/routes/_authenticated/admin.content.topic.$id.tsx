@@ -14,9 +14,9 @@ export const Route = createFileRoute("/_authenticated/admin/content/topic/$id")(
   component: ManageTopic,
 });
 
-type Question = { id: string; question: string; options: string[]; correct_answer: number; explanation: string | null; difficulty: string };
+type Question = { id: string; question: string; options: string[]; correct_answer: number; explanation: string | null; difficulty: string; images: string[] };
 
-const EMPTY = { question: "", options: ["", "", "", ""], correct: 0, explanation: "", difficulty: "medium" };
+const EMPTY = { question: "", options: ["", "", "", ""], correct: 0, explanation: "", difficulty: "medium", images: [] as string[] };
 
 type Draft = { question: string; options: string[]; correct: number; explanation: string; difficulty: string; _keep: boolean; _open: boolean };
 
@@ -27,8 +27,9 @@ function ManageTopic() {
   const [bankId, setBankId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<typeof EMPTY>({ ...EMPTY, options: [...EMPTY.options] });
+  const [form, setForm] = useState<typeof EMPTY>({ ...EMPTY, options: [...EMPTY.options], images: [] });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [parsing, setParsing] = useState(false);
   const [drafts, setDrafts] = useState<Draft[]>([]);
