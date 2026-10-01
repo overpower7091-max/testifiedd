@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, ShieldAlert, ShieldCheck, Trophy, Flame, Sparkles, Target, Clock, User, TrendingUp, Radio } from "lucide-react";
+import { Loader2, ShieldAlert, ShieldCheck, Trophy, Flame, Sparkles, Target, Clock, User, TrendingUp, Radio, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +30,8 @@ function StudentProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [reason, setReason] = useState("");
+  const [newClass, setNewClass] = useState<string>("");
+  const [promoting, setPromoting] = useState(false);
 
   const load = async () => {
     const [{ data: p }, { data: a }, { data: subjects }, { data: lp }] = await Promise.all([
