@@ -123,6 +123,17 @@ function StudentProfile() {
     load();
   };
 
+  const promote = async () => {
+    if (!profile || !newClass || newClass === profile.class) return;
+    setPromoting(true);
+    const { error } = await supabase.from("profiles").update({ class: newClass as any }).eq("id", id);
+    setPromoting(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Moved to Class ${newClass}`);
+    setNewClass("");
+    load();
+  };
+
   if (loading || !profile) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
