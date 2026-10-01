@@ -214,6 +214,47 @@ function StudentProfile() {
           </div>
         </div>
 
+        {/* Promote / change class */}
+        <div className="glass rounded-3xl p-6">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-primary" /> Class {profile.class ?? "—"}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Promote or move this student to a different class. Their progress history is kept.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-1 min-w-[240px] justify-end">
+              <div className="flex flex-wrap gap-1.5">
+                {["6", "7", "8", "9", "10", "11", "12"].map((c) => {
+                  const active = (newClass || profile.class) === c;
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => setNewClass(c)}
+                      aria-pressed={active}
+                      className={`rounded-xl px-3 py-2 text-sm transition-all ${
+                        active ? "btn-gradient text-white font-medium" : "glass text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={promote}
+                disabled={promoting || !newClass || newClass === profile.class}
+                className="btn-gradient rounded-full px-5 py-2 text-sm font-medium inline-flex items-center gap-2 disabled:opacity-50"
+              >
+                {promoting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Move student
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Performance graph */}
         <div className="glass rounded-3xl p-6">
           <div className="flex items-center justify-between">
