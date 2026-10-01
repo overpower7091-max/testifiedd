@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, ShieldAlert, ShieldCheck, Trophy, Flame, Sparkles, Target, Clock, User, TrendingUp, Radio } from "lucide-react";
+import { Loader2, ShieldAlert, ShieldCheck, Trophy, Flame, Sparkles, Target, Clock, User, TrendingUp, Radio, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +30,8 @@ function StudentProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [reason, setReason] = useState("");
+  const [newClass, setNewClass] = useState<string>("");
+  const [promoting, setPromoting] = useState(false);
 
   const load = async () => {
     const [{ data: p }, { data: a }, { data: subjects }, { data: lp }] = await Promise.all([
@@ -121,6 +123,17 @@ function StudentProfile() {
     load();
   };
 
+  const promote = async () => {
+    if (!profile || !newClass || newClass === profile.class) return;
+    setPromoting(true);
+    const { error } = await supabase.from("profiles").update({ class: newClass as any }).eq("id", id);
+    setPromoting(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Moved to Class ${newClass}`);
+    setNewClass("");
+    load();
+  };
+
   if (loading || !profile) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
@@ -196,6 +209,47 @@ function StudentProfile() {
               >
                 {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 {profile.is_banned ? "Restore access" : "Suspend student"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Promote / change class */}
+        <div className="glass rounded-3xl p-6">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-primary" /> Class {profile.class ?? "—"}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Promote or move this student to a different class. Their progress history is kept.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-1 min-w-[240px] justify-end">
+              <div className="flex flex-wrap gap-1.5">
+                {["6", "7", "8", "9", "10", "11", "12"].map((c) => {
+                  const active = (newClass || profile.class) === c;
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => setNewClass(c)}
+                      aria-pressed={active}
+                      className={`rounded-xl px-3 py-2 text-sm transition-all ${
+                        active ? "btn-gradient text-white font-medium" : "glass text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={promote}
+                disabled={promoting || !newClass || newClass === profile.class}
+                className="btn-gradient rounded-full px-5 py-2 text-sm font-medium inline-flex items-center gap-2 disabled:opacity-50"
+              >
+                {promoting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Move student
               </button>
             </div>
           </div>
