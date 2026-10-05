@@ -8,3 +8,4 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+- Reuse `src/components/page-skeletons.tsx` for route-specific loading placeholders so their geometry stays aligned with the dashboard and practice layouts.
