@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Clock, CheckCircle2, XCircle, ArrowRight, Trophy, RotateCcw } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, ArrowRight, Trophy, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
+import { LoadedPage, PracticeSkeleton } from "@/components/page-skeletons";
 import { ReportQuestionDialog } from "@/components/report-question-dialog";
 import { QuestionImages } from "@/lib/question-images";
 import { supabase } from "@/integrations/supabase/client";
@@ -104,7 +105,7 @@ function Practice() {
 
   const correctCount = answers.filter((a) => a.correct).length;
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  if (loading) return <PracticeSkeleton />;
 
   if (!questions.length) {
     return (
@@ -149,6 +150,7 @@ function Practice() {
   }
 
   return (
+    <LoadedPage>
     <div className="min-h-screen">
       <AppHeader back={{ to: "/subjects" }} />
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
@@ -225,5 +227,6 @@ function Practice() {
         </div>
       </main>
     </div>
+    </LoadedPage>
   );
 }

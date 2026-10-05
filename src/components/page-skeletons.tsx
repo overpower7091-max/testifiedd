@@ -1,4 +1,3 @@
-import { AppHeader } from "@/components/app-header";
 import { cn } from "@/lib/utils";
 
 function Bone({ className = "" }: { className?: string }) {
