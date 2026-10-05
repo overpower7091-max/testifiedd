@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  BookOpen, Loader2,
+  BookOpen,
   ArrowRight, TrendingUp, Clock, Radio,
 } from "lucide-react";
 import {
@@ -9,6 +9,7 @@ import {
   DailyQuizIcon, LiveIcon, AiSolverIcon, LeaderboardIcon, HistoryIcon,
 } from "@/components/animated-icons";
 import { AppHeader } from "@/components/app-header";
+import { DashboardSkeleton, LoadedPage } from "@/components/page-skeletons";
 import { SubjectCard } from "@/components/subject-card";
 import { LiveQuizReminder } from "@/components/live-quiz-reminder";
 import { supabase } from "@/integrations/supabase/client";
@@ -124,7 +125,7 @@ function Home() {
   }, [navigate]);
 
   if (loading || !profile) {
-    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+    return <DashboardSkeleton />;
   }
 
   const firstName = (profile.full_name || "Student").split(" ")[0];
@@ -138,6 +139,7 @@ function Home() {
   const studyMin = Math.round(todayAttempts.reduce((s, a) => s + (a.time_seconds || 0), 0) / 60);
 
   return (
+    <LoadedPage>
     <div className="min-h-screen w-full text-foreground">
       <AppHeader isAdmin={isAdmin} />
 
@@ -321,6 +323,7 @@ function Home() {
         </section>
       </main>
     </div>
+    </LoadedPage>
   );
 }
 
