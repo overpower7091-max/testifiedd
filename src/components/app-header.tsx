@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { GraduationCap, LogOut, ShieldCheck, ArrowLeft, User, Radio } from "lucide-react";
+import { LogOut, ShieldCheck, ArrowLeft, User, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export function AppHeader({ isAdmin, back }: { isAdmin?: boolean; back?: { to: string; label?: string; params?: Record<string, string> } }) {
@@ -18,9 +18,13 @@ export function AppHeader({ isAdmin, back }: { isAdmin?: boolean; back?: { to: s
             </Link>
           )}
           <Link to="/home" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl btn-gradient">
-              <GraduationCap className="h-4 w-4 text-white" />
-            </div>
+            <img
+              src="/logo.png"
+              alt=""
+              className="h-9 w-9 rounded-xl object-cover"
+              width="36"
+              height="36"
+            />
             <div className="leading-tight">
               <div className="text-base font-semibold tracking-tight">testified</div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground">WBBSE</div>
