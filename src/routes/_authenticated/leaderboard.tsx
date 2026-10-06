@@ -1,20 +1,29 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Trophy, Crown, Target } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
+import { LeaderboardPodium } from "@/components/leaderboard-podium";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 type Search = { subject?: string };
 
 export const Route = createFileRoute("/_authenticated/leaderboard")({
-  head: () => ({ meta: [{ title: "Leaderboard — Testified" }] }),
+  head: () => ({ meta: [
+    { title: "Class Leaderboard — Testified" },
+    { name: "description", content: "Celebrate the top performers and compare class rankings on Testified." },
+    { property: "og:title", content: "Class Leaderboard — Testified" },
+    { property: "og:description", content: "Celebrate the top performers and compare class rankings on Testified." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
   validateSearch: (s: Record<string, unknown>): Search => ({
     subject: typeof s.subject === "string" ? s.subject : undefined,
   }),
   component: Leaderboard,
 });
 
-type Row = { id: string; full_name: string | null; class: string | null; xp: number; streak: number; correct: number; total: number };
+type Row = { id: string; full_name: string | null; avatar_url: string | null; class: string | null; xp: number; streak: number; correct: number; total: number };
 
 function Leaderboard() {
   const search = Route.useSearch();
@@ -24,6 +33,7 @@ function Leaderboard() {
   const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ceremonyComplete, setCeremonyComplete] = useState(false);
 
   const subjectId = search.subject ?? null;
 
@@ -50,7 +60,7 @@ function Leaderboard() {
     (async () => {
       setLoading(true);
       // Fetch peers in class
-      let profileQ = supabase.from("profiles").select("id, full_name, class, xp, streak").limit(200);
+      let profileQ = supabase.from("profiles").select("id, full_name, avatar_url, class, xp, streak").limit(200);
       if (myClass) profileQ = profileQ.eq("class", myClass as any);
       const { data: peers } = await profileQ;
       const peerIds = (peers ?? []).map((p) => p.id);
@@ -84,6 +94,7 @@ function Leaderboard() {
     () => subjectId ? subjects.find((s) => s.id === subjectId)?.name ?? "Subject" : "Overall",
     [subjectId, subjects],
   );
+  const setComplete = useCallback((complete: boolean) => setCeremonyComplete(complete), []);
 
   return (
     <div className="min-h-screen">
@@ -108,39 +119,54 @@ function Leaderboard() {
           </div>
         </div>
 
-        <div className="mt-6 glass rounded-3xl p-3">
-          {loading ? (
-            <div className="py-16 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : rows.length === 0 ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">No students yet.</div>
-          ) : rows.map((r, i) => {
-            const acc = r.total ? Math.round((r.correct / r.total) * 100) : 0;
-            return (
-              <div key={r.id} className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 ${r.id === me ? "glass-tint" : ""}`}>
-                <div className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                  i === 0 ? "bg-amber-500/20 text-amber-400" :
-                  i === 1 ? "bg-slate-400/20 text-slate-300" :
-                  i === 2 ? "bg-orange-500/20 text-orange-400" :
-                  "glass-tint text-primary"
-                }`}>{i < 3 ? <Crown className="h-4 w-4" /> : i + 1}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">
-                    {r.full_name || "Anonymous"} {r.id === me && <span className="text-xs text-primary">· You</span>}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">Class {r.class ?? "—"} · {r.streak}d streak</div>
-                </div>
-                {subjectId ? (
-                  <div className="text-right">
-                    <div className="inline-flex items-center gap-1 text-sm font-semibold gradient-text"><Target className="h-3.5 w-3.5" /> {r.correct}</div>
-                    <div className="text-[10px] text-muted-foreground">{r.total} attempted · {acc}%</div>
-                  </div>
-                ) : (
-                  <div className="inline-flex items-center gap-1 text-sm font-semibold gradient-text"><Trophy className="h-3.5 w-3.5" /> {r.xp}</div>
-                )}
+        {loading ? (
+          <div className="mt-6 glass rounded-3xl py-16 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        ) : rows.length === 0 ? (
+          <div className="mt-6 glass rounded-3xl py-16 text-center text-sm text-muted-foreground">No students yet.</div>
+        ) : (
+          <>
+            <LeaderboardPodium
+              students={rows.slice(0, 3)}
+              subjectMode={Boolean(subjectId)}
+              ceremonyKey={`${subjectId ?? "overall"}:${rows.map((row) => row.id).join(":")}`}
+              onComplete={setComplete}
+            />
+            <div className={`leaderboard-rest mt-6 glass rounded-3xl p-3 ${ceremonyComplete ? "is-visible" : ""}`} aria-hidden={!ceremonyComplete}>
+              <div className="mb-2 flex items-center justify-between px-3 pt-2">
+                <h2 className="text-sm font-semibold">More rankings</h2>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">4–100</span>
               </div>
-            );
-          })}
-        </div>
+              {rows.length <= 3 ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">More places are waiting to be claimed.</div>
+              ) : rows.slice(3).map((r, i) => {
+                const acc = r.total ? Math.round((r.correct / r.total) * 100) : 0;
+                return (
+                  <div key={r.id} className={`leaderboard-row flex items-center gap-3 rounded-2xl px-3 py-2.5 ${r.id === me ? "glass-tint" : ""}`} style={{ animationDelay: `${Math.min(i, 12) * 45}ms` }}>
+                    <div className="glass-tint flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-primary">{i + 4}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">{r.full_name || "Anonymous"} {r.id === me && <span className="text-xs text-primary">· You</span>}</div>
+                      <div className="text-[11px] text-muted-foreground">Class {r.class ?? "—"} · {r.streak}d streak</div>
+                    </div>
+                    {subjectId ? (
+                      <div className="text-right">
+                        <div className="gradient-text inline-flex items-center gap-1 text-sm font-semibold"><Target className="h-3.5 w-3.5" /> {r.correct}</div>
+                        <div className="text-[10px] text-muted-foreground">{r.total} attempted · {acc}%</div>
+                      </div>
+                    ) : (
+                      <div className="gradient-text inline-flex items-center gap-1 text-sm font-semibold"><Trophy className="h-3.5 w-3.5" /> {r.xp}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {!loading && rows.length > 0 && !ceremonyComplete && (
+          <div className="mt-4 flex justify-center">
+            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setCeremonyComplete(true)}>Show all rankings</Button>
+          </div>
+        )}
 
         <div className="mt-4 flex justify-center">
           <Link to="/profile" className="text-xs text-primary hover:underline">View your performance graphs →</Link>
@@ -152,13 +178,15 @@ function Leaderboard() {
 
 function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
+    <Button
       onClick={onClick}
+      variant="ghost"
+      size="sm"
       className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${
-        active ? "btn-gradient text-white" : "glass hover:text-primary"
+        active ? "btn-gradient text-foreground" : "glass hover:text-primary"
       }`}
     >
       {children}
-    </button>
+    </Button>
   );
 }

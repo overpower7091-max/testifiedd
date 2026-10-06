@@ -36,6 +36,7 @@ function Home() {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [attempts, setAttempts] = useState<any[]>([]);
   const [rank, setRank] = useState<number | null>(null);
+  const [classTopper, setClassTopper] = useState<{ name: string; xp: number; avatar: string | null } | null>(null);
   const [liveTopper, setLiveTopper] = useState<{ name: string; score: number; subject: string } | null>(null);
   const [latestLiveQuiz, setLatestLiveQuiz] = useState<{ subject: string; hasAttempts: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -115,9 +116,11 @@ function Home() {
       // Rank within class (approx by XP)
       if (p.class) {
         const { data: leaderboard } = await supabase.from("profiles")
-          .select("id, xp").eq("class", p.class).order("xp", { ascending: false });
+          .select("id, full_name, avatar_url, xp").eq("class", p.class).order("xp", { ascending: false });
         const pos = (leaderboard ?? []).findIndex((x: any) => x.id === uid);
         setRank(pos >= 0 ? pos + 1 : null);
+        const leader = leaderboard?.[0];
+        setClassTopper(leader ? { name: leader.full_name || "Anonymous", xp: leader.xp, avatar: leader.avatar_url } : null);
       }
 
       setLoading(false);
@@ -163,6 +166,18 @@ function Home() {
                   <Radio className="h-4 w-4" /> Join live mock
                 </Link>
               </div>
+
+              <Link to="/leaderboard" className="dashboard-leaderboard mt-5 flex max-w-xl items-center gap-3 overflow-hidden rounded-2xl border border-warning/35 bg-warning/10 px-4 py-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-warning/20 text-warning">
+                  {classTopper?.avatar ? <img src={classTopper.avatar} alt="" className="h-full w-full object-cover" /> : <LeaderboardIcon className="h-5 w-5" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-warning">Class {profile.class} leaderboard</div>
+                  <div className="truncate text-sm font-semibold">{classTopper ? <><span className="topper-name">{classTopper.name}</span> leads with {classTopper.xp} XP</> : "The first-place podium is open"}</div>
+                </div>
+                <span className="hidden shrink-0 items-center gap-1 text-xs font-semibold text-warning sm:inline-flex">View Leaderboard <ArrowRight className="h-3.5 w-3.5" /></span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-warning sm:hidden" />
+              </Link>
 
               {liveTopper && (
                 <Link to="/leaderboard" className="topper-banner mt-5 flex max-w-xl items-center gap-3 overflow-hidden rounded-2xl border border-warning/35 bg-warning/10 px-4 py-3">
