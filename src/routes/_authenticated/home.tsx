@@ -167,30 +167,17 @@ function Home() {
                 </Link>
               </div>
 
-              <Link to="/leaderboard" className="dashboard-leaderboard mt-5 flex max-w-xl items-center gap-3 overflow-hidden rounded-2xl border border-warning/35 bg-warning/10 px-4 py-3">
+              <Link to="/leaderboard" className="dashboard-leaderboard topper-banner mt-5 flex max-w-xl items-center gap-3 overflow-hidden rounded-2xl border border-warning/35 bg-warning/10 px-4 py-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-warning/20 text-warning">
-                  {classTopper?.avatar ? <img src={classTopper.avatar} alt="" className="h-full w-full object-cover" /> : <LeaderboardIcon className="h-5 w-5" />}
+                  {liveTopper ? <CrownIcon className="h-5 w-5" /> : <LeaderboardIcon className="h-5 w-5" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-warning">Class {profile.class} leaderboard</div>
-                  <div className="truncate text-sm font-semibold">{classTopper ? <><span className="topper-name">{classTopper.name}</span> leads with {classTopper.xp} XP</> : "The first-place podium is open"}</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-warning">Class {profile.class} · Daily quiz champion</div>
+                  <div className="truncate text-sm font-semibold">{liveTopper ? <><span className="topper-name">{liveTopper.name}</span> topped {liveTopper.subject} with {liveTopper.score} pts</> : "The first-place podium is open"}</div>
                 </div>
                 <span className="hidden shrink-0 items-center gap-1 text-xs font-semibold text-warning sm:inline-flex">View Leaderboard <ArrowRight className="h-3.5 w-3.5" /></span>
                 <ArrowRight className="h-4 w-4 shrink-0 text-warning sm:hidden" />
               </Link>
-
-              {liveTopper && (
-                <Link to="/leaderboard" className="topper-banner mt-5 flex max-w-xl items-center gap-3 overflow-hidden rounded-2xl border border-warning/35 bg-warning/10 px-4 py-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning/20 text-warning">
-                    <CrownIcon className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-warning">Class {profile.class} · Daily live topper</div>
-                    <div className="truncate text-sm font-semibold"><span className="topper-name">{liveTopper.name}</span> topped {liveTopper.subject} with {liveTopper.score} points</div>
-                  </div>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-warning" />
-                </Link>
-              )}
               {latestLiveQuiz && !latestLiveQuiz.hasAttempts && (
                 <div className="topper-banner mt-5 flex max-w-xl items-center gap-3 rounded-2xl border border-border bg-muted/60 px-4 py-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
