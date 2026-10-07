@@ -394,3 +394,69 @@
 }
 
 
+/* ===== Leaderboard podium ceremony ===== */
+.podium-stage { --gold: oklch(0.82 0.16 85); --silver: oklch(0.82 0.03 240); --bronze: oklch(0.66 0.13 50); }
+.podium-spotlight { position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(60% 55% at 50% 100%, color-mix(in oklab, var(--gold) 18%, transparent), transparent 70%); }
+.podium-field { perspective: 900px; }
+.podium-place { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 0; }
+.podium-winner { width: 100%; opacity: 0; transform: translateY(-140px) scale(.85); }
+.podium-place.is-visible .podium-winner { animation: podium-drop .8s cubic-bezier(.3,1.5,.5,1) both; }
+.podium-place.is-celebrating .podium-winner { animation: podium-drop .8s cubic-bezier(.3,1.5,.5,1) both, podium-cheer .6s ease-in-out .1s 3; }
+.podium-place-1.is-visible .podium-winner { animation-duration: .95s; }
+
+.podium-block { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px;
+  margin-top: 10px; padding-top: 10px; border-radius: 14px 14px 6px 6px; transform-origin: bottom; transform: scaleY(0);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--tier) 34%, transparent), color-mix(in oklab, var(--tier) 8%, transparent));
+  border: 1px solid color-mix(in oklab, var(--tier) 55%, transparent); backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--foreground) 22%, transparent), 0 18px 40px -12px color-mix(in oklab, var(--tier) 70%, transparent);
+  transition: transform .7s cubic-bezier(.2,1.2,.4,1); }
+.podium-field.is-built .podium-block { transform: scaleY(1); }
+.podium-field.is-built .podium-place-1 .podium-block { transition-delay: .1s; }
+.podium-field.is-built .podium-place-3 .podium-block { transition-delay: .2s; }
+.podium-block-1 { --tier: var(--gold); height: 150px; }
+.podium-block-2 { --tier: var(--silver); height: 110px; }
+.podium-block-3 { --tier: var(--bronze); height: 80px; }
+.podium-place-1 { --tier: var(--gold); } .podium-place-2 { --tier: var(--silver); } .podium-place-3 { --tier: var(--bronze); }
+.podium-rank { font-size: clamp(1.8rem, 6vw, 2.8rem); font-weight: 800; line-height: 1;
+  background: linear-gradient(180deg, var(--foreground), var(--tier)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+.podium-avatar { position: relative; width: clamp(52px, 14vw, 72px); height: clamp(52px, 14vw, 72px); border-radius: 9999px;
+  display: grid; place-items: center; font-weight: 700; background: var(--muted);
+  border: 3px solid var(--tier); box-shadow: 0 0 0 4px color-mix(in oklab, var(--tier) 22%, transparent), 0 0 28px color-mix(in oklab, var(--tier) 55%, transparent); }
+.podium-avatar img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+.podium-avatar-1 { width: clamp(64px, 17vw, 88px); height: clamp(64px, 17vw, 88px); }
+.podium-avatar.is-empty { opacity: .45; border-style: dashed; box-shadow: none; }
+.podium-cup { position: absolute; right: -6px; bottom: -6px; width: 26px; height: 26px; padding: 4px; border-radius: 9999px;
+  background: var(--background); color: var(--tier); border: 1px solid var(--tier); }
+.podium-crown { width: 30px; height: 30px; margin-bottom: 4px; color: var(--gold); fill: color-mix(in oklab, var(--gold) 45%, transparent);
+  filter: drop-shadow(0 0 10px var(--gold)); opacity: 0; }
+.podium-place-1.is-visible .podium-crown { animation: podium-crown .7s ease-out .75s both, podium-float 2.4s ease-in-out 1.5s infinite; }
+.podium-tag { max-width: 100%; padding: 4px 8px; border-radius: 10px; background: color-mix(in oklab, var(--background) 60%, transparent);
+  border: 1px solid color-mix(in oklab, var(--tier) 40%, transparent); }
+
+.podium-confetti { position: absolute; top: -12px; width: 8px; height: 14px; border-radius: 2px; animation-name: podium-confetti; animation-timing-function: linear; animation-fill-mode: both; }
+.podium-confetti-0 { background: var(--gold); } .podium-confetti-1 { background: var(--primary); }
+.podium-confetti-2 { background: var(--silver); } .podium-confetti-3 { background: var(--bronze); } .podium-confetti-4 { background: var(--success, var(--accent)); }
+.podium-firework { position: absolute; width: 0; height: 0; }
+.podium-firework-left { left: 18%; top: 28%; } .podium-firework-right { right: 18%; top: 24%; } .podium-firework-center { left: 50%; top: 14%; }
+.podium-firework i { position: absolute; width: 4px; height: 16px; border-radius: 4px; background: var(--gold);
+  transform: rotate(var(--spark-angle)) translateY(0); animation: podium-spark .9s ease-out both; }
+.podium-firework-center i { animation-delay: .35s !important; background: var(--primary); }
+
+.leaderboard-rest { opacity: 0; transform: translateY(16px); pointer-events: none; transition: opacity .5s ease, transform .5s ease; }
+.leaderboard-rest.is-visible { opacity: 1; transform: none; pointer-events: auto; }
+.leaderboard-rest.is-visible .leaderboard-row { animation: page-content-enter .4s ease-out both; }
+
+@keyframes podium-drop { 0% { opacity: 0; transform: translateY(-140px) scale(.85); } 60% { opacity: 1; transform: translateY(8px) scale(1.04); } 100% { opacity: 1; transform: none; } }
+@keyframes podium-cheer { 0%,100% { transform: none; } 50% { transform: translateY(-12px); } }
+@keyframes podium-crown { from { opacity: 0; transform: translateY(-30px) rotate(-20deg) scale(.4); } to { opacity: 1; transform: none; } }
+@keyframes podium-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes podium-confetti { from { transform: translate(0,0) rotate(0); opacity: 1; } to { transform: translate(var(--confetti-drift), 520px) rotate(var(--confetti-turn)); opacity: 0; } }
+@keyframes podium-spark { 0% { opacity: 1; transform: rotate(var(--spark-angle)) translateY(0) scaleY(.4); } 100% { opacity: 0; transform: rotate(var(--spark-angle)) translateY(-60px) scaleY(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .podium-winner, .podium-crown { opacity: 1 !important; transform: none !important; animation: none !important; }
+  .podium-block { transform: none; transition: none; }
+  .leaderboard-rest { transition: none; }
+}
