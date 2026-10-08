@@ -1,3 +1,4 @@
 - [ ] Add dashboard leaderboard banner beneath primary actions
 - [ ] Build animated dynamic top-three podium with skip and replay controls
 - [ ] Reveal ranks 4–100 after the ceremony and verify desktop/mobile behavior
+- [ ] Implement self-healing activation/finalization, encrypted timed question unlock, and exact-boundary live quiz transitions
