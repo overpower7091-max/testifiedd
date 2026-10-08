@@ -306,7 +306,8 @@ async function tickQuiz(quiz: any) {
         current_question_index: 0,
         current_question_start_at: quiz.scheduled_at,
       })
-      .eq("id", quiz.id);
+      .eq("id", quiz.id)
+      .eq("status", "scheduled");
     return;
   }
 
@@ -317,8 +318,63 @@ async function tickQuiz(quiz: any) {
     const dur = (quiz.question_seconds ?? 90) * 1000;
     const endTs = anchor + quiz.questions_total * dur;
     if (now >= endTs) {
-      await finalizeQuiz(quiz);
+      await finishLiveQuiz(quiz);
     }
+  }
+}
+
+async function finishLiveQuiz(quiz: any) {
+  const { data: claimed } = await supabaseAdmin
+    .from("live_quizzes")
+    .update({ status: "generating" })
+    .eq("id", quiz.id)
+    .eq("status", "live")
+    .select("id")
+    .maybeSingle();
+  if (!claimed) return;
+  try {
+    await finalizeQuiz(quiz);
+  } catch (error) {
+    await supabaseAdmin
+      .from("live_quizzes")
+      .update({ status: "live" })
+      .eq("id", quiz.id)
+      .eq("status", "generating");
+    throw error;
+  }
+}
+
+/** Called by authenticated student requests as a fallback when the cron tick is late. */
+export async function healLiveQuizState(quizId: string) {
+  const { data: quiz } = await supabaseAdmin.from("live_quizzes").select("*").eq("id", quizId).maybeSingle();
+  if (!quiz) return;
+  const now = Date.now();
+  const start = new Date(quiz.scheduled_at).getTime();
+
+  if (quiz.status === "scheduled" && now >= start) {
+    const { count } = await supabaseAdmin
+      .from("live_quiz_questions")
+      .select("id", { count: "exact", head: true })
+      .eq("live_quiz_id", quiz.id);
+    if (count && count > 0) {
+      await supabaseAdmin
+        .from("live_quizzes")
+        .update({
+          status: "live",
+          started_at: quiz.scheduled_at,
+          current_question_index: 0,
+          current_question_start_at: quiz.scheduled_at,
+        })
+        .eq("id", quiz.id)
+        .eq("status", "scheduled");
+    }
+    return;
+  }
+
+  if (quiz.status === "live") {
+    const anchor = new Date(quiz.started_at ?? quiz.scheduled_at).getTime();
+    const end = anchor + (quiz.questions_total ?? 0) * (quiz.question_seconds ?? 90) * 1000;
+    if (now >= end) await finishLiveQuiz(quiz);
   }
 }
 
