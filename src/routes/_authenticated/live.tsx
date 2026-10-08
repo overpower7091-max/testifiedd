@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import katex from "katex";
 import { AppHeader } from "@/components/app-header";
 import { QuestionImages, resolveQuestionImages } from "@/lib/question-images";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +10,7 @@ import {
   getUpcomingLiveQuizzes,
   joinLiveQuiz,
   getLiveSession,
+  getLiveQuizQuestionKey as fetchLiveQuizQuestionKey,
   submitAnswer,
   getLeaderboard,
   getResults,
@@ -104,7 +106,7 @@ type Session = {
   started_at: string | null;
   ended_at: string | null;
   server_now: string;
-  questions: { id: string; position: number; difficulty: string; text: string; options: string[]; images?: string[] }[];
+  encrypted_questions: { position: number; iv: string; ciphertext: string }[];
   my_answers: { position: number; selected_index: number | null; is_correct: boolean }[];
 };
 
@@ -125,16 +127,20 @@ function QuizRunner({
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState<string>("loading");
   const [index, setIndex] = useState(0);
+  const [unlockedQuestions, setUnlockedQuestions] = useState<Record<number, { id: string; position: number; difficulty: string; text: string; options: string[]; images: string[] }>>({});
   const [answers, setAnswers] = useState<Record<number, { selected_index: number | null; is_correct: boolean }>>({});
-  const [submitting, setSubmitting] = useState(false);
   const skewRef = useRef(0);
   const anchorRef = useRef(0);
   const durRef = useRef(90_000);
   const totalRef = useRef(0);
+  const answeredPositionsRef = useRef(new Set<number>());
+  const unlockedPositionsRef = useRef(new Set<number>());
+  const unlockingPositionsRef = useRef(new Set<number>());
 
   const join = useServerFn(joinLiveQuiz);
   const loadSession = useServerFn(getLiveSession);
   const submit = useServerFn(submitAnswer);
+  const getQuestionKey = useServerFn(fetchLiveQuizQuestionKey);
 
   const applySession = useCallback((s: Session) => {
     skewRef.current = new Date(s.server_now).getTime() - Date.now();
@@ -143,20 +149,13 @@ function QuizRunner({
     totalRef.current = s.questions_total;
     const map: Record<number, { selected_index: number | null; is_correct: boolean }> = {};
     for (const a of s.my_answers) map[a.position] = { selected_index: a.selected_index, is_correct: a.is_correct };
+    answeredPositionsRef.current = new Set(Object.keys(map).map(Number));
     setAnswers(map);
     setSession(s);
     setStatus(s.status);
-    // Preload any question images before the quiz starts
-    const allPaths = s.questions.flatMap((q) => q.images ?? []);
-    if (allPaths.length) {
-      resolveQuestionImages(allPaths)
-        .then((urls) => {
-          for (const src of urls) {
-            const img = new Image();
-            img.src = src;
-          }
-        })
-        .catch(() => null);
+    // Warm the math renderer without exposing any unreleased question text.
+    if (s.encrypted_questions.length) {
+      try { katex.renderToString("x^2 + y^2 = z^2", { throwOnError: false }); } catch { /* warm-up only */ }
     }
   }, []);
 
@@ -197,22 +196,78 @@ function QuizRunner({
     };
   }, [quizId, status]);
 
-  // Derive the current index from server time. No DB reads here.
+  // Question boundaries and timer use the same server-synchronized anchor.
   useEffect(() => {
     if (status !== "live") return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const tick = () => {
       const serverNow = Date.now() + skewRef.current;
-      const i = Math.floor((serverNow - anchorRef.current) / durRef.current);
+      const elapsed = serverNow - anchorRef.current;
+      const i = Math.max(0, Math.floor(elapsed / durRef.current));
       if (i >= totalRef.current) {
         setStatus("awaiting_results");
+        reload().catch(() => null);
         return;
       }
       setIndex((prev) => (prev === i ? prev : Math.max(0, i)));
+      const nextBoundary = anchorRef.current + (i + 1) * durRef.current;
+      timer = setTimeout(tick, Math.max(1, nextBoundary - serverNow));
     };
     tick();
-    const iv = setInterval(tick, 200);
-    return () => clearInterval(iv);
-  }, [status]);
+    return () => { if (timer) clearTimeout(timer); };
+  }, [status, reload]);
+
+  // Request only the current question's release key; decrypt and cache in memory.
+  useEffect(() => {
+    if (status !== "live" || !session?.encrypted_questions?.length) return;
+    const encrypted = session.encrypted_questions.find((item) => item.position === index);
+    if (!encrypted || unlockedPositionsRef.current.has(index) || unlockingPositionsRef.current.has(index)) return;
+    const keyRef = index;
+    unlockingPositionsRef.current.add(keyRef);
+    let cancelled = false;
+    const retry = () => {
+      if (cancelled) return;
+      unlockingPositionsRef.current.delete(keyRef);
+      window.setTimeout(() => {
+        if (!cancelled) setIndex((current) => current);
+      }, 180);
+    };
+    void (async () => {
+      try {
+        const released = await getQuestionKey({ data: { quiz_id: quizId, position: keyRef } });
+        const decode = (value: string) => Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
+        const cryptoKey = await window.crypto.subtle.importKey("raw", decode(released.key), { name: "AES-GCM" }, false, ["decrypt"]);
+        const plaintext = await window.crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: decode(encrypted.iv) },
+          cryptoKey,
+          decode(encrypted.ciphertext),
+        );
+        const question = JSON.parse(new TextDecoder().decode(plaintext)) as {
+          id: string; position: number; difficulty: string; text: string; options: string[]; images: string[];
+        };
+        if (cancelled) return;
+        unlockedPositionsRef.current.add(keyRef);
+        setUnlockedQuestions((previous) => ({ ...previous, [keyRef]: question }));
+        const urls = await resolveQuestionImages(question.images ?? []).catch(() => []);
+        for (const src of urls) {
+          const img = new Image();
+          img.src = src;
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        if (message.toLowerCase().includes("not available yet")) {
+          retry();
+          return;
+        }
+        unlockingPositionsRef.current.delete(keyRef);
+        if (!cancelled) toast.error("Could not load this question. Retrying…");
+        window.setTimeout(() => {
+          if (!cancelled) setIndex((current) => current);
+        }, 500);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [status, session, index, quizId, getQuestionKey]);
 
   // While results are being computed, poll status until it flips to ended
   useEffect(() => {
@@ -223,28 +278,22 @@ function QuizRunner({
     return () => clearInterval(iv);
   }, [status, reload]);
 
-  const handleSubmit = useCallback(
-    async (idx: number) => {
-      if (submitting || answers[index]) return;
-      setSubmitting(true);
-      // Optimistic lock — UI never waits for the network
-      setAnswers((prev) => ({ ...prev, [index]: { selected_index: idx, is_correct: false } }));
-      try {
-        const r = await submit({ data: { quiz_id: quizId, position: index, selected_index: idx } });
-        setAnswers((prev) => ({ ...prev, [index]: { selected_index: idx, is_correct: r.is_correct } }));
-      } catch (e: any) {
-        setAnswers((prev) => {
-          const next = { ...prev };
+  const handleSubmit = useCallback((idx: number) => {
+    if (status !== "live" || answeredPositionsRef.current.has(index) || !unlockedQuestions[index]) return;
+    answeredPositionsRef.current.add(index);
+    setAnswers((previous) => ({ ...previous, [index]: { selected_index: idx, is_correct: false } }));
+    void submit({ data: { quiz_id: quizId, position: index, selected_index: idx } })
+      .then((result) => setAnswers((previous) => ({ ...previous, [index]: { selected_index: idx, is_correct: result.is_correct } })))
+      .catch((error: unknown) => {
+        answeredPositionsRef.current.delete(index);
+        setAnswers((previous) => {
+          const next = { ...previous };
           delete next[index];
           return next;
         });
-        toast.error(e?.message ?? "Submit failed");
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [index, answers, submitting, quizId],
-  );
+        toast.error(error instanceof Error ? error.message : "Answer could not be saved");
+      });
+  }, [status, index, unlockedQuestions, submit, quizId]);
 
   if (status === "loading" || !session) {
     return (
@@ -351,7 +400,7 @@ function QuizRunner({
   }
 
   // LIVE — layout/header/timer stay mounted; only the question card swaps.
-  const q = session.questions.find((x) => x.position === index) ?? null;
+  const q = unlockedQuestions[index] ?? null;
   const answered = answers[index] ?? null;
 
   return (
@@ -387,7 +436,6 @@ function QuizRunner({
             question={q}
             selected={answered?.selected_index ?? null}
             locked={!!answered}
-            submitting={submitting}
             onSelect={handleSubmit}
               liveQuizId={quizId}
           />
@@ -407,14 +455,12 @@ const QuestionCard = memo(function QuestionCard({
   question,
   selected,
   locked,
-  submitting,
   onSelect,
   liveQuizId,
 }: {
   question: { id: string; text: string; options: string[]; difficulty: string; images?: string[] } | null;
   selected: number | null;
   locked: boolean;
-  submitting: boolean;
   onSelect: (idx: number) => void;
   liveQuizId: string;
 }) {
@@ -422,7 +468,7 @@ const QuestionCard = memo(function QuestionCard({
     return <div className="mt-6 text-sm text-muted-foreground text-center py-8">Waiting for question…</div>;
   }
   return (
-    <div className="animate-in fade-in duration-200">
+    <div>
       <div className="mt-6 text-lg leading-relaxed">
         <Latex>{question.text}</Latex>
         <QuestionImages paths={question.images} />
@@ -433,7 +479,7 @@ const QuestionCard = memo(function QuestionCard({
           return (
             <button
               key={idx}
-              disabled={locked || submitting}
+              disabled={locked}
               onClick={() => onSelect(idx)}
               className={`w-full text-left rounded-2xl px-4 py-3 transition ${
                 isSel ? "btn-gradient text-white" : locked ? "glass opacity-60 cursor-not-allowed" : "glass hover:text-primary"
