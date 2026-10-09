@@ -106,7 +106,7 @@ export const getLiveSession = createServerFn({ method: "POST" })
     };
 
     if (quiz.status !== "live" && quiz.status !== "ended" && quiz.status !== "scheduled") {
-      return { ...meta, encrypted_questions: [], my_answers: [] };
+      return { ...meta, questions: [], my_answers: [] };
     }
 
     const [{ data: lqqs }, { data: mine }] = await Promise.all([
@@ -131,46 +131,7 @@ export const getLiveSession = createServerFn({ method: "POST" })
       options: q.questions?.options ?? [],
       images: q.questions?.images ?? [],
     }));
-    const encryptionSecret = process.env["LIVE_QUIZ_ENCRYPTION_SECRET"];
-    if (!encryptionSecret) throw new Error("Live quiz security is unavailable");
-    const { encryptLiveQuizQuestions } = await import("@/lib/live-quiz-crypto.server");
-    const encryptedQuestions = await encryptLiveQuizQuestions(encryptionSecret, quiz.id, questions);
-
-    return { ...meta, encrypted_questions: encryptedQuestions, my_answers: mine ?? [] };
-  });
-
-export const getLiveQuizQuestionKey = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { quiz_id: string; position: number }) => d)
-  .handler(async ({ data, context }) => {
-    if (!Number.isInteger(data.position) || data.position < 0) throw new Error("Question is not available");
-    const cls = await getUserClass(context);
-    const { data: quiz } = await context.supabase
-      .from("live_quizzes")
-      .select("id, class_level, status, scheduled_at, started_at, questions_total, question_seconds")
-      .eq("id", data.quiz_id)
-      .maybeSingle();
-    if (!quiz || quiz.class_level !== cls) throw new Error("Question is not available");
-
-    const { healLiveQuizState } = await import("@/lib/live-quiz-scheduler.server");
-    await healLiveQuizState(quiz.id);
-    const { data: current } = await context.supabase
-      .from("live_quizzes")
-      .select("status, scheduled_at, started_at, questions_total, question_seconds")
-      .eq("id", quiz.id)
-      .maybeSingle();
-    if (!current || current.status !== "live" || data.position >= current.questions_total) {
-      throw new Error("Question is not available yet");
-    }
-
-    const anchor = new Date(current.started_at ?? current.scheduled_at).getTime();
-    const unlockAt = anchor + data.position * current.question_seconds * 1000;
-    if (Date.now() < unlockAt) throw new Error("Question is not available yet");
-
-    const secret = process.env["LIVE_QUIZ_ENCRYPTION_SECRET"];
-    if (!secret) throw new Error("Live quiz security is unavailable");
-    const { getLiveQuizQuestionKey: deriveKey } = await import("@/lib/live-quiz-crypto.server");
-    return { key: await deriveKey(secret, quiz.id, data.position) };
+    return { ...meta, questions, my_answers: mine ?? [] };
   });
 
 export const submitAnswer = createServerFn({ method: "POST" })

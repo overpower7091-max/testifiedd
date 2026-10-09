@@ -11,3 +11,4 @@
 - Reuse `src/components/page-skeletons.tsx` for route-specific loading placeholders so their geometry stays aligned with the dashboard and practice layouts.
 - Keep installable app metadata manifest-only unless offline support is explicitly requested, avoiding cache-related preview issues.
 - Keep the leaderboard ceremony in `src/components/leaderboard-podium.tsx`; ranking queries and filters remain owned by the route so the animation stays reusable and presentation-only.
+- Live quiz question bundles are fetched once per session without encryption; keep answer correctness and scoring exclusively on the server, and derive question timing from the shared quiz start timestamp so transitions do not wait for network requests.
