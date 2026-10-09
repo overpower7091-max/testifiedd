@@ -10,7 +10,6 @@ import {
   getUpcomingLiveQuizzes,
   joinLiveQuiz,
   getLiveSession,
-  getLiveQuizQuestionKey as fetchLiveQuizQuestionKey,
   submitAnswer,
   getLeaderboard,
   getResults,
@@ -106,8 +105,17 @@ type Session = {
   started_at: string | null;
   ended_at: string | null;
   server_now: string;
-  encrypted_questions: { position: number; iv: string; ciphertext: string }[];
+  questions: LiveQuestion[];
   my_answers: { position: number; selected_index: number | null; is_correct: boolean }[];
+};
+
+type LiveQuestion = {
+  id: string;
+  position: number;
+  difficulty: string;
+  text: string;
+  options: string[];
+  images: string[];
 };
 
 /**
@@ -127,20 +135,16 @@ function QuizRunner({
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState<string>("loading");
   const [index, setIndex] = useState(0);
-  const [unlockedQuestions, setUnlockedQuestions] = useState<Record<number, { id: string; position: number; difficulty: string; text: string; options: string[]; images: string[] }>>({});
   const [answers, setAnswers] = useState<Record<number, { selected_index: number | null; is_correct: boolean }>>({});
   const skewRef = useRef(0);
   const anchorRef = useRef(0);
   const durRef = useRef(90_000);
   const totalRef = useRef(0);
   const answeredPositionsRef = useRef(new Set<number>());
-  const unlockedPositionsRef = useRef(new Set<number>());
-  const unlockingPositionsRef = useRef(new Set<number>());
 
   const join = useServerFn(joinLiveQuiz);
   const loadSession = useServerFn(getLiveSession);
   const submit = useServerFn(submitAnswer);
-  const getQuestionKey = useServerFn(fetchLiveQuizQuestionKey);
 
   const applySession = useCallback((s: Session) => {
     skewRef.current = new Date(s.server_now).getTime() - Date.now();
@@ -153,9 +157,20 @@ function QuizRunner({
     setAnswers(map);
     setSession(s);
     setStatus(s.status);
-    // Warm the math renderer without exposing any unreleased question text.
-    if (s.encrypted_questions.length) {
-      try { katex.renderToString("x^2 + y^2 = z^2", { throwOnError: false }); } catch { /* warm-up only */ }
+    // Warm question rendering and image downloads while the quiz is in its lobby.
+    for (const question of s.questions ?? []) {
+      for (const value of [question.text, ...question.options]) {
+        try { katex.renderToString(value, { throwOnError: false }); } catch { /* warm-up only */ }
+      }
+    }
+    const imagePaths = [...new Set((s.questions ?? []).flatMap((question) => question.images ?? []))];
+    if (imagePaths.length) {
+      void resolveQuestionImages(imagePaths).then((urls) => {
+        for (const src of urls) {
+          const image = new Image();
+          image.src = src;
+        }
+      }).catch(() => null);
     }
   }, []);
 
@@ -217,58 +232,6 @@ function QuizRunner({
     return () => { if (timer) clearTimeout(timer); };
   }, [status, reload]);
 
-  // Request only the current question's release key; decrypt and cache in memory.
-  useEffect(() => {
-    if (status !== "live" || !session?.encrypted_questions?.length) return;
-    const encrypted = session.encrypted_questions.find((item) => item.position === index);
-    if (!encrypted || unlockedPositionsRef.current.has(index) || unlockingPositionsRef.current.has(index)) return;
-    const keyRef = index;
-    unlockingPositionsRef.current.add(keyRef);
-    let cancelled = false;
-    const retry = () => {
-      if (cancelled) return;
-      unlockingPositionsRef.current.delete(keyRef);
-      window.setTimeout(() => {
-        if (!cancelled) setIndex((current) => current);
-      }, 180);
-    };
-    void (async () => {
-      try {
-        const released = await getQuestionKey({ data: { quiz_id: quizId, position: keyRef } });
-        const decode = (value: string) => Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
-        const cryptoKey = await window.crypto.subtle.importKey("raw", decode(released.key), { name: "AES-GCM" }, false, ["decrypt"]);
-        const plaintext = await window.crypto.subtle.decrypt(
-          { name: "AES-GCM", iv: decode(encrypted.iv) },
-          cryptoKey,
-          decode(encrypted.ciphertext),
-        );
-        const question = JSON.parse(new TextDecoder().decode(plaintext)) as {
-          id: string; position: number; difficulty: string; text: string; options: string[]; images: string[];
-        };
-        if (cancelled) return;
-        unlockedPositionsRef.current.add(keyRef);
-        setUnlockedQuestions((previous) => ({ ...previous, [keyRef]: question }));
-        const urls = await resolveQuestionImages(question.images ?? []).catch(() => []);
-        for (const src of urls) {
-          const img = new Image();
-          img.src = src;
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "";
-        if (message.toLowerCase().includes("not available yet")) {
-          retry();
-          return;
-        }
-        unlockingPositionsRef.current.delete(keyRef);
-        if (!cancelled) toast.error("Could not load this question. Retrying…");
-        window.setTimeout(() => {
-          if (!cancelled) setIndex((current) => current);
-        }, 500);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [status, session, index, quizId, getQuestionKey]);
-
   // While results are being computed, poll status until it flips to ended
   useEffect(() => {
     if (status !== "awaiting_results" && status !== "scheduled" && status !== "configuration_required") return;
@@ -279,7 +242,7 @@ function QuizRunner({
   }, [status, reload]);
 
   const handleSubmit = useCallback((idx: number) => {
-    if (status !== "live" || answeredPositionsRef.current.has(index) || !unlockedQuestions[index]) return;
+    if (status !== "live" || answeredPositionsRef.current.has(index) || !session?.questions[index]) return;
     answeredPositionsRef.current.add(index);
     setAnswers((previous) => ({ ...previous, [index]: { selected_index: idx, is_correct: false } }));
     void submit({ data: { quiz_id: quizId, position: index, selected_index: idx } })
@@ -293,7 +256,7 @@ function QuizRunner({
         });
         toast.error(error instanceof Error ? error.message : "Answer could not be saved");
       });
-  }, [status, index, unlockedQuestions, submit, quizId]);
+  }, [status, index, session, submit, quizId]);
 
   if (status === "loading" || !session) {
     return (
@@ -400,7 +363,7 @@ function QuizRunner({
   }
 
   // LIVE — layout/header/timer stay mounted; only the question card swaps.
-  const q = unlockedQuestions[index] ?? null;
+  const q = session.questions[index] ?? null;
   const answered = answers[index] ?? null;
 
   return (
