@@ -115,7 +115,7 @@ type Session = {
   ended_at: string | null;
   server_now: string;
   questions: LiveQuestion[];
-  my_answers: { position: number; selected_index: number | null; is_correct: boolean }[];
+  my_answers: { position: number; selected_index: number | null }[];
 };
 
 type LiveQuestion = {
@@ -161,7 +161,7 @@ function QuizRunner({
     durRef.current = (s.question_seconds ?? 90) * 1000;
     totalRef.current = s.questions_total;
     const map: Record<number, { selected_index: number | null; is_correct: boolean }> = {};
-    for (const a of s.my_answers) map[a.position] = { selected_index: a.selected_index, is_correct: a.is_correct };
+    for (const a of s.my_answers) map[a.position] = { selected_index: a.selected_index, is_correct: false };
     answeredPositionsRef.current = new Set(Object.keys(map).map(Number));
     setAnswers(map);
     setSession(s);
@@ -260,7 +260,6 @@ function QuizRunner({
     answeredPositionsRef.current.add(index);
     setAnswers((previous) => ({ ...previous, [index]: { selected_index: idx, is_correct: false } }));
     void submit({ data: { quiz_id: quizId, position: index, selected_index: idx } })
-      .then((result) => setAnswers((previous) => ({ ...previous, [index]: { selected_index: idx, is_correct: result.is_correct } })))
       .catch((error: unknown) => {
         answeredPositionsRef.current.delete(index);
         setAnswers((previous) => {
