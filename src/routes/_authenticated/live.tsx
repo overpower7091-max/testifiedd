@@ -20,7 +20,16 @@ import { Loader2, Radio, Clock, Trophy, CheckCircle2, XCircle, ChevronRight } fr
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/live")({
-  head: () => ({ meta: [{ title: "Live Quiz — Testified" }] }),
+  head: () => ({
+    meta: [
+      { title: "Live Quiz — Testified" },
+      { name: "description", content: "Join your class's scheduled live quiz on Testified." },
+      { property: "og:title", content: "Live Quiz — Testified" },
+      { property: "og:description", content: "Join your class's scheduled live quiz on Testified." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: LiveQuizPage,
 });
 
