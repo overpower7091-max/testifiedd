@@ -180,6 +180,11 @@ function QuizRunner({
     return s;
   }, [quizId]);
 
+  const startAtBoundary = useCallback(() => {
+    if (session?.questions.length) setStatus("live");
+    void reload().catch(() => null);
+  }, [session, reload]);
+
   // Single bulk download on mount (also covers refresh / reconnect)
   useEffect(() => {
     (async () => {
@@ -292,7 +297,7 @@ function QuizRunner({
             <CountdownToStart
               targetMs={new Date(session.scheduled_at).getTime()}
               skewRef={skewRef}
-              onReached={() => reload().catch(() => null)}
+              onReached={startAtBoundary}
             />
             <p className="mt-3 text-sm text-muted-foreground">
               Starts at {new Date(session.scheduled_at).toLocaleTimeString()} — {session.questions_total} questions,{" "}
@@ -325,7 +330,7 @@ function QuizRunner({
             <CountdownToStart
               targetMs={new Date(session.scheduled_at).getTime()}
               skewRef={skewRef}
-              onReached={() => reload().catch(() => null)}
+              onReached={startAtBoundary}
             />
             <p className="mt-3 text-sm text-muted-foreground">
               Starts at {new Date(session.scheduled_at).toLocaleTimeString()} — {session.questions_total} questions,{" "}

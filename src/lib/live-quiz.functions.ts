@@ -138,6 +138,8 @@ export const submitAnswer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { quiz_id: string; position: number; selected_index: number }) => d)
   .handler(async ({ data, context }) => {
+    const { healLiveQuizState } = await import("@/lib/live-quiz-scheduler.server");
+    await healLiveQuizState(data.quiz_id);
     const cls = await getUserClass(context);
     const { data: quiz } = await context.supabase
       .from("live_quizzes")
