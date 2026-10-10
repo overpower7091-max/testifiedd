@@ -20,7 +20,16 @@ import { Loader2, Radio, Clock, Trophy, CheckCircle2, XCircle, ChevronRight } fr
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/live")({
-  head: () => ({ meta: [{ title: "Live Quiz — Testified" }] }),
+  head: () => ({
+    meta: [
+      { title: "Live Quiz — Testified" },
+      { name: "description", content: "Join your class's scheduled live quiz on Testified." },
+      { property: "og:title", content: "Live Quiz — Testified" },
+      { property: "og:description", content: "Join your class's scheduled live quiz on Testified." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: LiveQuizPage,
 });
 
@@ -106,7 +115,7 @@ type Session = {
   ended_at: string | null;
   server_now: string;
   questions: LiveQuestion[];
-  my_answers: { position: number; selected_index: number | null; is_correct: boolean }[];
+  my_answers: { position: number; selected_index: number | null }[];
 };
 
 type LiveQuestion = {
@@ -152,7 +161,7 @@ function QuizRunner({
     durRef.current = (s.question_seconds ?? 90) * 1000;
     totalRef.current = s.questions_total;
     const map: Record<number, { selected_index: number | null; is_correct: boolean }> = {};
-    for (const a of s.my_answers) map[a.position] = { selected_index: a.selected_index, is_correct: a.is_correct };
+    for (const a of s.my_answers) map[a.position] = { selected_index: a.selected_index, is_correct: false };
     answeredPositionsRef.current = new Set(Object.keys(map).map(Number));
     setAnswers(map);
     setSession(s);
@@ -179,6 +188,11 @@ function QuizRunner({
     applySession(s);
     return s;
   }, [quizId]);
+
+  const startAtBoundary = useCallback(() => {
+    if (session?.questions.length) setStatus("live");
+    void reload().catch(() => null);
+  }, [session, reload]);
 
   // Single bulk download on mount (also covers refresh / reconnect)
   useEffect(() => {
@@ -246,7 +260,6 @@ function QuizRunner({
     answeredPositionsRef.current.add(index);
     setAnswers((previous) => ({ ...previous, [index]: { selected_index: idx, is_correct: false } }));
     void submit({ data: { quiz_id: quizId, position: index, selected_index: idx } })
-      .then((result) => setAnswers((previous) => ({ ...previous, [index]: { selected_index: idx, is_correct: result.is_correct } })))
       .catch((error: unknown) => {
         answeredPositionsRef.current.delete(index);
         setAnswers((previous) => {
@@ -292,7 +305,7 @@ function QuizRunner({
             <CountdownToStart
               targetMs={new Date(session.scheduled_at).getTime()}
               skewRef={skewRef}
-              onReached={() => reload().catch(() => null)}
+              onReached={startAtBoundary}
             />
             <p className="mt-3 text-sm text-muted-foreground">
               Starts at {new Date(session.scheduled_at).toLocaleTimeString()} — {session.questions_total} questions,{" "}
@@ -325,7 +338,7 @@ function QuizRunner({
             <CountdownToStart
               targetMs={new Date(session.scheduled_at).getTime()}
               skewRef={skewRef}
-              onReached={() => reload().catch(() => null)}
+              onReached={startAtBoundary}
             />
             <p className="mt-3 text-sm text-muted-foreground">
               Starts at {new Date(session.scheduled_at).toLocaleTimeString()} — {session.questions_total} questions,{" "}

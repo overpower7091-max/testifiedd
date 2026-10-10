@@ -117,7 +117,7 @@ export const getLiveSession = createServerFn({ method: "POST" })
         .order("position"),
       context.supabase
         .from("live_quiz_answers")
-        .select("position, selected_index, is_correct, response_ms")
+        .select("position, selected_index, response_ms")
         .eq("live_quiz_id", quiz.id)
         .eq("user_id", context.userId)
         .order("position"),
@@ -138,6 +138,8 @@ export const submitAnswer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { quiz_id: string; position: number; selected_index: number }) => d)
   .handler(async ({ data, context }) => {
+    const { healLiveQuizState } = await import("@/lib/live-quiz-scheduler.server");
+    await healLiveQuizState(data.quiz_id);
     const cls = await getUserClass(context);
     const { data: quiz } = await context.supabase
       .from("live_quizzes")
@@ -182,7 +184,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
       if (String(error.message).toLowerCase().includes("duplicate")) throw new Error("Already answered");
       throw error;
     }
-    return { ok: true, is_correct: isCorrect };
+    return { ok: true };
   });
 
 
