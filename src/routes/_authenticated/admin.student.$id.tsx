@@ -1,10 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, ShieldAlert, ShieldCheck, Trophy, Flame, Sparkles, Target, Clock, User, TrendingUp, Radio, GraduationCap } from "lucide-react";
+import { Loader2, ShieldAlert, ShieldCheck, Trophy, Flame, Sparkles, Target, Clock, User, TrendingUp, Radio, GraduationCap, History } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { supabase } from "@/integrations/supabase/client";
-import { AreaTrend, EmptyChart, groupSessions, sessionsToSeries, PALETTES } from "@/components/perf-charts";
+import { AreaTrend, ActivityBars, EmptyChart, groupSessions, sessionsToSeries, PALETTES } from "@/components/perf-charts";
+
+function fmtDur(s: number) {
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  return m < 60 ? `${m}m ${s % 60}s` : `${Math.floor(m / 60)}h ${m % 60}m`;
+}
 
 export const Route = createFileRoute("/_authenticated/admin/student/$id")({
   head: () => ({ meta: [{ title: "Student profile — Admin" }] }),
@@ -27,6 +33,7 @@ function StudentProfile() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [live, setLive] = useState<LiveRow[]>([]);
   const [subjectMap, setSubjectMap] = useState<Record<string, string>>({});
+  const [topicMap, setTopicMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [reason, setReason] = useState("");
@@ -51,6 +58,13 @@ function StudentProfile() {
     (subjects ?? []).forEach((s: any) => (map[s.id] = s.name));
     setSubjectMap(map);
     setLoading(false);
+    const topicIds = [...new Set((a ?? []).map((x: any) => x.topic_id).filter(Boolean))] as string[];
+    if (topicIds.length) {
+      const { data: tps } = await supabase.from("topics").select("id, name").in("id", topicIds.slice(0, 300));
+      const tm: Record<string, string> = {};
+      (tps ?? []).forEach((t: any) => (tm[t.id] = t.name));
+      setTopicMap(tm);
+    }
   };
 
 
@@ -104,6 +118,18 @@ function StudentProfile() {
   );
   const liveAvg = liveSeries.length ? Math.round(liveSeries.reduce((s, x) => s + x.accuracy, 0) / liveSeries.length) : 0;
   const bestRank = live.reduce<number | null>((b, r) => (r.rank && (b === null || r.rank < b) ? r.rank : b), null);
+  const history = useMemo(() => {
+    const map = new Map<string, { key: string; subject: string; topicId: string | null; topic?: string; startedAt: string; total: number; correct: number; seconds: number }>();
+    for (const a of attempts) {
+      const key = a.session_id ?? `legacy:${a.topic_id ?? "x"}:${a.created_at.slice(0, 16)}`;
+      const ex = map.get(key) ?? { key, subject: a.subject_id ? subjectMap[a.subject_id] ?? "Practice" : "Practice", topicId: a.topic_id, startedAt: a.created_at, total: 0, correct: 0, seconds: 0 };
+      ex.total++; if (a.is_correct) ex.correct++; ex.seconds += a.time_seconds || 0;
+      if (a.created_at < ex.startedAt) ex.startedAt = a.created_at;
+      map.set(key, ex);
+    }
+    return [...map.values()].map((h) => ({ ...h, topic: h.topicId ? topicMap[h.topicId] : undefined }))
+      .sort((x, y) => (x.startedAt < y.startedAt ? 1 : -1));
+  }, [attempts, subjectMap, topicMap]);
 
 
 
@@ -138,7 +164,6 @@ function StudentProfile() {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
 
-  const maxDay = Math.max(1, ...stats.days.map((d) => d.count));
 
   return (
     <div className="min-h-screen">
@@ -257,20 +282,60 @@ function StudentProfile() {
 
         {/* Performance graph */}
         <div className="glass rounded-3xl p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h2 className="text-lg font-semibold flex items-center gap-2"><Trophy className="h-4 w-4 text-primary" /> 14-day activity</h2>
-            <span className="text-xs text-muted-foreground">{stats.total} attempts total · {stats.correct} correct</span>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary/40" />Attempts</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" />Correct</span>
+              <span>· {stats.total} total</span>
+            </div>
           </div>
-          <div className="mt-6 flex items-end gap-1.5 h-32">
-            {stats.days.map((d) => (
-              <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full flex flex-col justify-end h-full">
-                  <div className="w-full rounded-t-md btn-gradient" style={{ height: `${(d.count / maxDay) * 100}%`, minHeight: d.count ? "4px" : "1px", opacity: d.count ? 1 : 0.15 }} title={`${d.count} attempts (${d.correct} correct)`} />
-                </div>
-                <div className="text-[9px] text-muted-foreground">{d.day}</div>
-              </div>
-            ))}
+          <div className="mt-5 h-56">
+            <ActivityBars data={stats.days.map((d) => ({ label: d.day, count: d.count, correct: d.correct }))} from="hsl(221 83% 60%)" to="hsl(199 89% 65%)" />
           </div>
+        </div>
+
+        {/* Practice quiz history */}
+        <div className="glass rounded-3xl p-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h2 className="text-lg font-semibold flex items-center gap-2"><History className="h-4 w-4 text-primary" /> Practice quiz history</h2>
+            <span className="text-xs text-muted-foreground">{history.length} quiz{history.length === 1 ? "" : "zes"}</span>
+          </div>
+          {history.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">No practice quizzes yet.</p>
+          ) : (
+            <div className="mt-4 max-h-[460px] overflow-auto rounded-2xl border border-border/40">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="sticky top-0 bg-card/95 backdrop-blur text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <tr><th className="px-4 py-3">Subject / Topic</th><th className="px-4 py-3">Date</th><th className="px-4 py-3">Time</th><th className="px-4 py-3">Questions</th><th className="px-4 py-3">Accuracy</th><th className="px-4 py-3">Duration</th></tr>
+                </thead>
+                <tbody>
+                  {history.map((h) => {
+                    const acc = Math.round((h.correct / h.total) * 100);
+                    const d = new Date(h.startedAt);
+                    return (
+                      <tr key={h.key} className="border-t border-border/40 hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{h.subject}</div>
+                          {h.topic && <div className="text-[11px] text-muted-foreground truncate max-w-[220px]">{h.topic}</div>}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{d.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
+                        <td className="px-4 py-3">{h.correct}/{h.total}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-16 rounded-full bg-muted/40 overflow-hidden"><div className="h-full btn-gradient" style={{ width: `${acc}%` }} /></div>
+                            <span className={`text-xs font-semibold ${acc >= 75 ? "text-success" : acc >= 40 ? "text-warning" : "text-destructive"}`}>{acc}%</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{fmtDur(h.seconds)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Subject breakdown */}
