@@ -39,6 +39,18 @@ function StudentProfile() {
   const [reason, setReason] = useState("");
   const [newClass, setNewClass] = useState<string>("");
   const [promoting, setPromoting] = useState(false);
+  const [xpInput, setXpInput] = useState("");
+  const [xpSaving, setXpSaving] = useState(false);
+  const setXp = async (value: number) => {
+    if (!Number.isFinite(value) || value < 0) { toast.error("Enter a valid XP (0 or more)"); return; }
+    setXpSaving(true);
+    const { error } = await supabase.from("profiles").update({ xp: Math.floor(value) }).eq("id", id);
+    setXpSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(value === 0 ? "XP reset to 0" : `XP set to ${Math.floor(value)}`);
+    setXpInput("");
+    setProfile((p) => (p ? { ...p, xp: Math.floor(value) } : p));
+  };
 
   const load = async () => {
     const [{ data: p }, { data: a }, { data: subjects }, { data: lp }] = await Promise.all([
@@ -199,6 +211,28 @@ function StudentProfile() {
             <Stat icon={<Flame className="h-4 w-4" />} label="Streak" value={`${profile.streak}d`} />
             <Stat icon={<Target className="h-4 w-4" />} label="Accuracy" value={`${stats.accuracy}%`} />
             <Stat icon={<Clock className="h-4 w-4" />} label="Time" value={`${stats.timeMin}m`} />
+          </div>
+        </div>
+
+        {/* XP control */}
+        <div className="glass rounded-3xl p-6">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> XP control</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Current XP: <b className="text-foreground">{profile.xp}</b>. Reset to 0 or set an exact amount.</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <input
+                type="number" min={0} value={xpInput}
+                onChange={(e) => setXpInput(e.target.value)}
+                placeholder="New XP"
+                className="glass rounded-full px-4 py-2 text-sm bg-transparent outline-none w-32 placeholder:text-muted-foreground"
+              />
+              <button onClick={() => setXp(Number(xpInput))} disabled={xpSaving || xpInput === ""}
+                className="rounded-full px-4 py-2 text-sm font-medium glass-tint text-primary disabled:opacity-50">Set XP</button>
+              <button onClick={() => { if (confirm(`Reset ${profile.full_name || "this student"}'s XP to 0?`)) setXp(0); }} disabled={xpSaving || profile.xp === 0}
+                className="rounded-full px-4 py-2 text-sm font-medium bg-destructive text-destructive-foreground disabled:opacity-50">Reset to 0</button>
+            </div>
           </div>
         </div>
 
