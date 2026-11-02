@@ -8,6 +8,13 @@
       "when": 1793586759457,
       "tag": "0000_class_leaderboard",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793586779183,
+      "tag": "0001_class_subject_stats",
+      "breakpoints": true
     }
   ]
 }

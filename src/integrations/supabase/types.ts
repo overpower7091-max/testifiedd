@@ -1047,6 +1047,14 @@ export type Database = {
           xp: number
         }[]
       }
+      get_class_subject_stats: {
+        Args: { _subject_id: string }
+        Returns: {
+          correct: number
+          total: number
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
