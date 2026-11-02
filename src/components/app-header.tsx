@@ -1,10 +1,34 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { LogOut, ShieldCheck, ArrowLeft, User, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+let adminCache: { uid: string; isAdmin: boolean } | null = null;
+
 export function AppHeader({ isAdmin, back }: { isAdmin?: boolean; back?: { to: string; label?: string; params?: Record<string, string> } }) {
   const navigate = useNavigate();
+  const [roleAdmin, setRoleAdmin] = useState(false);
+
+  useEffect(() => {
+    if (isAdmin) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user.id;
+      if (!uid) return;
+      if (adminCache?.uid === uid) { if (!cancelled) setRoleAdmin(adminCache.isAdmin); return; }
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+      const result = !!roles?.some((r: any) => r.role === "admin");
+      adminCache = { uid, isAdmin: result };
+      if (!cancelled) setRoleAdmin(result);
+    })();
+    return () => { cancelled = true; };
+  }, [isAdmin]);
+
+  const showAdmin = isAdmin || roleAdmin;
+
   const signOut = async () => {
+    adminCache = null;
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   };
@@ -35,16 +59,16 @@ export function AppHeader({ isAdmin, back }: { isAdmin?: boolean; back?: { to: s
           <Link to="/live" className="inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-xs font-medium hover:text-primary transition-colors" aria-label="Live Quiz">
             <Radio className="h-3.5 w-3.5 text-red-500" /> <span className="hidden sm:inline">Live</span>
           </Link>
-          {isAdmin && (
-            <Link to="/admin" className="hidden sm:inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-xs font-medium hover:text-primary transition-colors">
-              <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Admin
+          {showAdmin && (
+            <Link to="/admin" className="inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-xs font-medium hover:text-primary transition-colors" aria-label="Admin Panel">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" /> <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
           <Link to="/profile" className="inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-xs font-medium hover:text-primary transition-colors" aria-label="Profile">
             <User className="h-3.5 w-3.5 text-primary" /> <span className="hidden sm:inline">Profile</span>
           </Link>
-          <button onClick={signOut} className="inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-xs font-medium hover:text-primary transition-colors">
-            <LogOut className="h-3.5 w-3.5" /> Sign out
+          <button onClick={signOut} className="inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-xs font-medium hover:text-primary transition-colors" aria-label="Sign out">
+            <LogOut className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Sign out</span>
           </button>
         </div>
       </div>
