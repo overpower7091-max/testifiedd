@@ -92,12 +92,9 @@ function Leaderboard() {
               .order("correct_count", { ascending: false })
               .order("total_time_ms", { ascending: true })
               .limit(100);
-            const ids = (parts ?? []).map((p) => p.user_id);
-            const { data: profs } = ids.length
-              ? await supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids)
-              : { data: [] as any[] };
-            const byId = new Map((profs ?? []).map((p: any) => [p.id, p]));
-            for (const p of parts ?? []) {
+            const { data: classmates } = await supabase.rpc("get_class_leaderboard");
+            const byId = new Map((classmates ?? []).map((p: any) => [p.id, p]));
+            for (const p of (parts ?? []).filter((x) => x.score > 0)) {
               const prof: any = byId.get(p.user_id);
               result.push({
                 id: p.user_id, full_name: prof?.full_name ?? null, avatar_url: prof?.avatar_url ?? null,
@@ -109,27 +106,23 @@ function Leaderboard() {
           }
         }
       } else {
-        let profileQ = supabase.from("profiles").select("id, full_name, avatar_url, class, xp, streak").limit(200);
-        if (myClass) profileQ = profileQ.eq("class", myClass as any);
-        const { data: peers } = await profileQ;
-        const peerIds = (peers ?? []).map((p) => p.id);
+        // Shared, class-wide list (same for every student in the class).
+        const { data: peers } = await supabase.rpc("get_class_leaderboard");
         if (mode === "xp") {
-          [...(peers ?? [])].sort((a, b) => b.xp - a.xp).forEach((p) => result.push({
-            id: p.id, full_name: p.full_name, avatar_url: p.avatar_url,
-            primary: `${p.xp}`, secondary: `Class ${p.class ?? "—"} · ${p.streak}d streak`, scoreText: `${p.xp} XP`,
-          }));
-        } else if (peerIds.length) {
-          const { data: att } = await supabase.from("quiz_attempts").select("user_id, is_correct").in("user_id", peerIds).eq("subject_id", subjectId!);
-          const stats = new Map<string, { correct: number; total: number }>();
-          for (const a of att ?? []) {
-            const s = stats.get(a.user_id) ?? { correct: 0, total: 0 };
-            s.total += 1; if (a.is_correct) s.correct += 1;
-            stats.set(a.user_id, s);
-          }
-          (peers ?? []).map((p) => ({ p, s: stats.get(p.id) ?? { correct: 0, total: 0 } }))
-            .sort((a, b) => (b.s.correct - a.s.correct) || ((b.s.total ? b.s.correct / b.s.total : 0) - (a.s.total ? a.s.correct / a.s.total : 0)))
+          [...(peers ?? [])].filter((p) => p.xp > 0)
+            .sort((a, b) => b.xp - a.xp || (a.full_name ?? "").localeCompare(b.full_name ?? ""))
+            .forEach((p) => result.push({
+              id: p.id, full_name: p.full_name, avatar_url: p.avatar_url,
+              primary: `${p.xp}`, secondary: `Class ${p.class ?? "—"} · ${p.streak}d streak`, scoreText: `${p.xp} XP`,
+            }));
+        } else if (peers?.length) {
+          const { data: stats } = await supabase.rpc("get_class_subject_stats", { _subject_id: subjectId! });
+          const byUser = new Map((stats ?? []).map((s) => [s.user_id, { correct: Number(s.correct), total: Number(s.total) }]));
+          peers.map((p) => ({ p, s: byUser.get(p.id) ?? { correct: 0, total: 0 } }))
+            .filter(({ s }) => s.correct > 0)
+            .sort((a, b) => (b.s.correct - a.s.correct) || (b.s.correct / b.s.total - a.s.correct / a.s.total))
             .forEach(({ p, s }) => {
-              const acc = s.total ? Math.round((s.correct / s.total) * 100) : 0;
+              const acc = Math.round((s.correct / s.total) * 100);
               result.push({
                 id: p.id, full_name: p.full_name, avatar_url: p.avatar_url,
                 primary: `${s.correct}`, secondary: `${s.total} attempted · ${acc}%`, scoreText: `${s.correct} correct · ${acc}%`,
@@ -183,7 +176,7 @@ function Leaderboard() {
         ) : rows.length === 0 ? (
           <div className="mt-6 glass rounded-3xl py-16 px-6 text-center">
             <Radio className="mx-auto h-8 w-8 text-primary" />
-            <p className="mt-3 text-sm font-medium">{mode === "daily" ? "No daily quiz results yet" : "No students yet."}</p>
+            <p className="mt-3 text-sm font-medium">{mode === "daily" ? "No daily quiz results yet" : "All positions are empty — nobody has scored yet."}</p>
             {mode === "daily" && (
               <Link to="/live" className="mt-4 inline-flex btn-gradient rounded-full px-5 py-2 text-sm font-medium">Join the next live quiz</Link>
             )}
