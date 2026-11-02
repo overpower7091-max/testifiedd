@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Eye, Sparkles, Check, X, ChevronDown, ChevronUp, ImagePlus } from "lucide-react";
+import { Loader2, Plus, Trash2, Eye, Sparkles, Check, X, ChevronDown, ChevronUp, ImagePlus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { AppHeader } from "@/components/app-header";
@@ -34,6 +34,7 @@ function ManageTopic() {
   const [parsing, setParsing] = useState(false);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [importing, setImporting] = useState(false);
+  const [editing, setEditing] = useState<Question | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -110,6 +111,25 @@ function ManageTopic() {
     const { error } = await supabase.from("questions").update({ images }).eq("id", qid);
     if (error) return toast.error(error.message);
     setQuestions((prev) => prev.map((q) => (q.id === qid ? { ...q, images } : q)));
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    if (!editing.question.trim() || editing.options.some((o) => !o.trim())) return toast.error("Fill the question and all options.");
+    setSaving(true);
+    const { error } = await supabase.from("questions").update({
+      question: editing.question.trim(),
+      options: editing.options,
+      correct_answer: editing.correct_answer,
+      explanation: editing.explanation?.trim() || null,
+      difficulty: editing.difficulty as any,
+    }).eq("id", editing.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Question updated");
+    const updated = editing;
+    setQuestions((prev) => prev.map((q) => (q.id === updated.id ? { ...updated, explanation: updated.explanation?.trim() || null } : q)));
+    setEditing(null);
   };
 
   const remove = async (qid: string) => {
@@ -350,7 +370,37 @@ function ManageTopic() {
             <div className="mt-3 text-sm text-muted-foreground">No questions yet.</div>
           ) : (
             <div className="mt-3 space-y-3">
-              {questions.map((q, i) => (
+              {questions.map((q, i) => editing?.id === q.id ? (
+                <div key={q.id} className="glass-tint rounded-2xl p-4 space-y-2">
+                  <div className="text-xs text-muted-foreground">Editing #{i + 1}</div>
+                  <textarea value={editing.question} onChange={(e) => setEditing({ ...editing, question: e.target.value })}
+                    rows={3} className="w-full glass rounded-xl px-3 py-2 text-sm bg-transparent outline-none" />
+                  {editing.options.map((o, oi) => (
+                    <div key={oi} className="flex items-center gap-2">
+                      <button type="button" onClick={() => setEditing({ ...editing, correct_answer: oi })}
+                        className={`h-7 w-7 shrink-0 rounded-full text-[10px] font-semibold ${editing.correct_answer === oi ? "bg-emerald-500 text-primary-foreground" : "glass"}`}>
+                        {String.fromCharCode(65 + oi)}
+                      </button>
+                      <input value={o} onChange={(e) => { const opts = [...editing.options]; opts[oi] = e.target.value; setEditing({ ...editing, options: opts }); }}
+                        className="flex-1 glass rounded-full px-3 py-1.5 text-sm bg-transparent outline-none" />
+                    </div>
+                  ))}
+                  <textarea value={editing.explanation ?? ""} placeholder="Explanation (optional)" onChange={(e) => setEditing({ ...editing, explanation: e.target.value })}
+                    rows={2} className="w-full glass rounded-xl px-3 py-2 text-sm bg-transparent outline-none" />
+                  <div className="flex items-center gap-2">
+                    <select value={editing.difficulty} onChange={(e) => setEditing({ ...editing, difficulty: e.target.value })}
+                      className="glass rounded-full px-3 py-1.5 text-xs bg-transparent">
+                      <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
+                    </select>
+                    <span className="text-xs text-muted-foreground">Tap a letter to mark correct</span>
+                    <div className="flex-1" />
+                    <button onClick={() => setEditing(null)} className="glass rounded-full px-3 py-1.5 text-xs inline-flex items-center gap-1"><X className="h-3.5 w-3.5" /> Cancel</button>
+                    <button onClick={saveEdit} disabled={saving} className="rounded-full px-3 py-1.5 text-xs bg-primary text-primary-foreground inline-flex items-center gap-1 disabled:opacity-50">
+                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
                 <div key={q.id} className="glass-tint rounded-2xl p-4">
                   <div className="flex items-start gap-2">
                     <span className="text-xs text-muted-foreground shrink-0 mt-1">#{i + 1}</span>
@@ -376,7 +426,10 @@ function ManageTopic() {
                         )}
                       </div>
                     </div>
-                    <button onClick={() => remove(q.id)} className="glass rounded-full p-2 text-red-500 hover:scale-105 transition-transform"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <div className="flex flex-col gap-2">
+                      <button onClick={() => setEditing({ ...q, options: [...q.options] })} aria-label="Edit question" className="glass rounded-full p-2 text-primary hover:scale-105 transition-transform"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => remove(q.id)} aria-label="Delete question" className="glass rounded-full p-2 text-red-500 hover:scale-105 transition-transform"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </div>
                   </div>
                 </div>
               ))}
