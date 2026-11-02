@@ -176,7 +176,7 @@ function Leaderboard() {
         ) : rows.length === 0 ? (
           <div className="mt-6 glass rounded-3xl py-16 px-6 text-center">
             <Radio className="mx-auto h-8 w-8 text-primary" />
-            <p className="mt-3 text-sm font-medium">{mode === "daily" ? "No daily quiz results yet" : "No students yet."}</p>
+            <p className="mt-3 text-sm font-medium">{mode === "daily" ? "No daily quiz results yet" : "All positions are empty — nobody has scored yet."}</p>
             {mode === "daily" && (
               <Link to="/live" className="mt-4 inline-flex btn-gradient rounded-full px-5 py-2 text-sm font-medium">Join the next live quiz</Link>
             )}
