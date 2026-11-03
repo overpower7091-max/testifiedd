@@ -11,26 +11,40 @@ export const getTodaysLiveQuiz = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const cls = await getUserClass(context);
     if (!cls) return { quiz: null, subject: null };
-    // Self-healing: create today's quiz rows if no cron has done it yet.
-    try {
-      const { ensureScheduledForToday } = await import("@/lib/live-quiz-scheduler.server");
-      await ensureScheduledForToday();
-    } catch (e) {
-      console.error("ensureScheduledForToday failed", e);
-    }
-    // Look for a quiz today (from 6 hours ago to end-of-day IST-ish window: next 20 hours)
     const from = new Date(Date.now() - 6 * 3600_000).toISOString();
     const to = new Date(Date.now() + 20 * 3600_000).toISOString();
-    const { data } = await context.supabase
-      .from("live_quizzes")
-      .select("*, subjects(name, slug)")
-      .eq("class_level", cls as any)
-      .gte("scheduled_at", from)
-      .lte("scheduled_at", to)
-      .order("scheduled_at", { ascending: true })
-      .limit(1);
-    const quiz = data?.[0] ?? null;
-    if (quiz?.id) {
+    const findQuiz = async () => {
+      const { data } = await context.supabase
+        .from("live_quizzes")
+        .select("*, subjects(name, slug)")
+        .eq("class_level", cls as any)
+        .gte("scheduled_at", from)
+        .lte("scheduled_at", to)
+        .order("scheduled_at", { ascending: true })
+        .limit(1);
+      return data?.[0] ?? null;
+    };
+    // Fast path: one lookup for the student's own class.
+    let quiz: any = await findQuiz();
+    if (!quiz) {
+      // Self-healing only when today's row doesn't exist yet.
+      try {
+        const { ensureScheduledForToday } = await import("@/lib/live-quiz-scheduler.server");
+        await ensureScheduledForToday();
+      } catch (e) {
+        console.error("ensureScheduledForToday failed", e);
+      }
+      quiz = await findQuiz();
+    }
+    if (!quiz) return { quiz: null };
+    const now = Date.now();
+    const start = new Date(quiz.scheduled_at).getTime();
+    const end = start + (quiz.questions_total ?? 10) * (quiz.question_seconds ?? 60) * 1000;
+    const needsHeal =
+      quiz.status === "configuration_required" ||
+      (quiz.status === "scheduled" && now >= start - 30 * 60_000) ||
+      (quiz.status === "live" && now >= end);
+    if (needsHeal) {
       const { healLiveQuizState } = await import("@/lib/live-quiz-scheduler.server");
       await healLiveQuizState(quiz.id);
       const { data: refreshed } = await context.supabase

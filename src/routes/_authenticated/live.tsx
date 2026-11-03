@@ -35,18 +35,20 @@ export const Route = createFileRoute("/_authenticated/live")({
 
 function LiveQuizPage() {
   const [quizId, setQuizId] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const getToday = useServerFn(getTodaysLiveQuiz);
   const getUpcoming = useServerFn(getUpcomingLiveQuizzes);
 
   useEffect(() => {
-    (async () => {
-      const t = await getToday({});
-      if (t.quiz) setQuizId(t.quiz.id);
-      const list = await getUpcoming({});
-      setUpcoming(list);
-    })();
+    void getUpcoming({}).then(setUpcoming).catch(() => null);
+    getToday({})
+      .then((t) => { if (t.quiz) setQuizId(t.quiz.id); })
+      .catch(() => null)
+      .finally(() => setChecking(false));
   }, []);
+
+  if (checking && !quizId) return <LiveSkeleton />;
 
   if (!quizId) {
     return (
