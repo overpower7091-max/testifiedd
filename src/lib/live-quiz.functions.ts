@@ -11,6 +11,13 @@ export const getTodaysLiveQuiz = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const cls = await getUserClass(context);
     if (!cls) return { quiz: null, subject: null };
+    // Self-healing: create today's quiz rows if no cron has done it yet.
+    try {
+      const { ensureScheduledForToday } = await import("@/lib/live-quiz-scheduler.server");
+      await ensureScheduledForToday();
+    } catch (e) {
+      console.error("ensureScheduledForToday failed", e);
+    }
     // Look for a quiz today (from 6 hours ago to end-of-day IST-ish window: next 20 hours)
     const from = new Date(Date.now() - 6 * 3600_000).toISOString();
     const to = new Date(Date.now() + 20 * 3600_000).toISOString();
@@ -109,8 +116,19 @@ export const getLiveSession = createServerFn({ method: "POST" })
       return { ...meta, questions: [], my_answers: [] };
     }
 
+    // Lobby preload: students may not read questions before start through
+    // their own access rules, so the server reads them (class already checked)
+    // within 30 minutes of the start. Correct answers are never selected.
+    const startsInMs = new Date(quiz.scheduled_at).getTime() - Date.now();
+    if (quiz.status === "scheduled" && startsInMs > 30 * 60_000) {
+      return { ...meta, questions: [], my_answers: [] };
+    }
+    const reader =
+      quiz.status === "scheduled"
+        ? (await import("@/integrations/supabase/client.server")).supabaseAdmin
+        : context.supabase;
     const [{ data: lqqs }, { data: mine }] = await Promise.all([
-      context.supabase
+      reader
         .from("live_quiz_questions")
         .select("position, difficulty, topic_id, questions(id, question, options, images)")
         .eq("live_quiz_id", quiz.id)

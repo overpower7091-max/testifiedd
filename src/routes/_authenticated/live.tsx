@@ -57,7 +57,7 @@ function LiveQuizPage() {
             <Radio className="mx-auto h-10 w-10 text-primary" />
             <h1 className="mt-4 text-2xl font-semibold">No live quiz scheduled</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Live quizzes run daily at 9:00 PM IST (except Sunday). Check back soon!
+              Live quizzes run daily at 9:00 PM IST. Check back soon!
             </p>
             <SchedulePreview upcoming={upcoming} onOpen={(id) => setQuizId(id)} />
           </div>
@@ -249,11 +249,13 @@ function QuizRunner({
   // While results are being computed, poll status until it flips to ended
   useEffect(() => {
     if (status !== "awaiting_results" && status !== "scheduled" && status !== "configuration_required") return;
+    // Once the lobby bundle is in memory there is nothing to poll for.
+    if (status === "scheduled" && session?.questions.length) return;
     const iv = setInterval(() => {
       reload().catch(() => null);
     }, 4000);
     return () => clearInterval(iv);
-  }, [status, reload]);
+  }, [status, reload, session?.questions.length]);
 
   const handleSubmit = useCallback((idx: number) => {
     if (status !== "live" || answeredPositionsRef.current.has(index) || !session?.questions[index]) return;

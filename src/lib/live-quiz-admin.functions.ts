@@ -172,7 +172,6 @@ export const adminScheduleNow = createServerFn({ method: "POST" })
       .eq("class_level", data.class_level as any)
       .eq("subject_id", data.subject_id)
       .maybeSingle();
-    if (!bp) throw new Error("No blueprint for this class/subject");
     // Insert quiz row if not already present at that scheduled_at
     const { data: existing } = await supabaseAdmin
       .from("live_quizzes")
@@ -189,15 +188,15 @@ export const adminScheduleNow = createServerFn({ method: "POST" })
         subject_id: data.subject_id,
         scheduled_at: when.toISOString(),
         status: "scheduled",
-        questions_total: bp.questions_total,
-        question_seconds: bp.question_seconds,
+        questions_total: bp?.questions_total ?? 3,
+        question_seconds: bp?.question_seconds ?? 30,
       })
-      .select("id")
+      .select("*")
       .single();
     if (error) throw error;
-    // Trigger generation immediately
-    const { runLiveQuizTick } = await import("./live-quiz-scheduler.server");
-    await runLiveQuizTick();
+    // Generate the bundle immediately so the lobby can preload it.
+    const { generateQuizIfNeeded } = await import("./live-quiz-scheduler.server");
+    await generateQuizIfNeeded(q);
     return { ok: true, live_quiz_id: q.id, scheduled_at: when.toISOString() };
   });
 

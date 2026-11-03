@@ -6,7 +6,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const SUBJECT_SLUG_BY_DOW_IST: Record<number, string | null> = {
   // Sunday=0 in JS getDay(), but we compute IST day-of-week separately.
-  0: null,               // Sunday: no quiz
+  0: "life-science",     // Sunday: revision quiz
   1: "mathematics",      // Monday
   2: "physical-science", // Tuesday
   3: "life-science",     // Wednesday
@@ -49,7 +49,7 @@ type BluePrintRow = {
   is_active: boolean;
 };
 
-async function ensureScheduledForToday() {
+export async function ensureScheduledForToday() {
   const { dow } = istDowAndDate();
   const slug = SUBJECT_SLUG_BY_DOW_IST[dow];
   if (!slug) return;
@@ -199,13 +199,13 @@ async function pickQuestionsForBlueprint(bp: BluePrintRow) {
   return shuffle(chosen).slice(0, bp.questions_total);
 }
 
-async function generateQuizIfNeeded(quiz: any) {
+export async function generateQuizIfNeeded(quiz: any) {
   if (quiz.status !== "scheduled" && quiz.status !== "configuration_required") return;
-  // Pre-generate the whole quiz ~5 minutes before the start, and never bother
-  // with rows whose start time is long gone.
+  // Generate as early as possible so students can preload the bundle in the
+  // lobby. Only skip rows whose whole quiz window has already passed.
   const startsInMs = new Date(quiz.scheduled_at).getTime() - Date.now();
-  if (startsInMs > 6 * 60_000) return;
-  if (startsInMs < -10 * 60_000) return;
+  const windowMs = (quiz.questions_total ?? 10) * (quiz.question_seconds ?? 90) * 1000;
+  if (startsInMs < -windowMs) return;
 
   // Already generated → idempotent no-op (never regenerate, never downgrade).
   const { count: existingQs } = await supabaseAdmin
@@ -227,7 +227,26 @@ async function generateQuizIfNeeded(quiz: any) {
     .eq("is_active", true)
     .maybeSingle();
   if (!bp) {
-    await supabaseAdmin.from("live_quizzes").update({ status: "configuration_required" }).eq("id", quiz.id);
+    // No blueprint: fall back to random questions from the subject's banks.
+    const fallback = await pickFallbackQuestions(quiz.subject_id, quiz.questions_total ?? 10);
+    if (!fallback.length) {
+      await supabaseAdmin.from("live_quizzes").update({ status: "configuration_required" }).eq("id", quiz.id);
+      return;
+    }
+    await supabaseAdmin.from("live_quiz_questions").delete().eq("live_quiz_id", quiz.id);
+    await supabaseAdmin.from("live_quiz_questions").insert(
+      fallback.map((q, idx) => ({
+        live_quiz_id: quiz.id,
+        position: idx,
+        question_id: q.id,
+        topic_id: q.topic_id,
+        difficulty: q.difficulty as any,
+      })),
+    );
+    await supabaseAdmin
+      .from("live_quizzes")
+      .update({ status: "scheduled", questions_total: fallback.length })
+      .eq("id", quiz.id);
     return;
   }
 
@@ -273,6 +292,42 @@ async function generateQuizIfNeeded(quiz: any) {
       blueprint_version_id: version?.id ?? null,
     })
     .eq("id", quiz.id);
+}
+
+async function pickFallbackQuestions(subjectId: string, total: number) {
+  const { data: chapters } = await supabaseAdmin.from("chapters").select("id").eq("subject_id", subjectId);
+  const chapterIds = (chapters ?? []).map((c: any) => c.id);
+  if (!chapterIds.length) return [];
+  const { data: topics } = await supabaseAdmin.from("topics").select("id").in("chapter_id", chapterIds);
+  const topicIds = (topics ?? []).map((t: any) => t.id);
+  if (!topicIds.length) return [];
+  const { data: banks } = await supabaseAdmin.from("question_banks").select("id, topic_id").in("topic_id", topicIds);
+  const topicByBank = new Map((banks ?? []).map((b: any) => [b.id, b.topic_id]));
+  if (!topicByBank.size) return [];
+  const { data: qs } = await supabaseAdmin
+    .from("questions")
+    .select("id, difficulty, question_bank_id")
+    .in("question_bank_id", [...topicByBank.keys()])
+    .limit(2000);
+  const pool = (qs ?? []).map((q: any) => ({ id: q.id, difficulty: q.difficulty, topic_id: topicByBank.get(q.question_bank_id) as string }));
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, total);
+}
+
+async function goLive(quiz: any) {
+  await supabaseAdmin
+    .from("live_quizzes")
+    .update({
+      status: "live",
+      started_at: quiz.scheduled_at,
+      current_question_index: 0,
+      current_question_start_at: quiz.scheduled_at,
+    })
+    .eq("id", quiz.id)
+    .eq("status", "scheduled");
 }
 
 async function tickQuiz(quiz: any) {
@@ -346,27 +401,33 @@ async function finishLiveQuiz(quiz: any) {
 
 /** Called by authenticated student requests as a fallback when the cron tick is late. */
 export async function healLiveQuizState(quizId: string) {
-  const { data: quiz } = await supabaseAdmin.from("live_quizzes").select("*").eq("id", quizId).maybeSingle();
+  let { data: quiz } = await supabaseAdmin.from("live_quizzes").select("*").eq("id", quizId).maybeSingle();
   if (!quiz) return;
   const now = Date.now();
   const start = new Date(quiz.scheduled_at).getTime();
 
-  if (quiz.status === "scheduled" && now >= start) {
+  // Make sure the question bundle exists as early as possible (lobby preload)
+  // and is generated on the spot if nobody did it before the start.
+  if (quiz.status === "scheduled" || quiz.status === "configuration_required") {
     const { count } = await supabaseAdmin
       .from("live_quiz_questions")
       .select("id", { count: "exact", head: true })
       .eq("live_quiz_id", quiz.id);
-    if (count && count > 0) {
-      await supabaseAdmin
-        .from("live_quizzes")
-        .update({
-          status: "live",
-          started_at: quiz.scheduled_at,
-          current_question_index: 0,
-          current_question_start_at: quiz.scheduled_at,
-        })
-        .eq("id", quiz.id)
-        .eq("status", "scheduled");
+    if (!count) {
+      await generateQuizIfNeeded(quiz);
+      const { data: fresh } = await supabaseAdmin.from("live_quizzes").select("*").eq("id", quizId).maybeSingle();
+      if (!fresh) return;
+      quiz = fresh;
+    }
+  }
+
+  if (quiz.status === "scheduled" && now >= start) {
+    const anchor = start;
+    const end = anchor + (quiz.questions_total ?? 0) * (quiz.question_seconds ?? 90) * 1000;
+    await goLive(quiz);
+    if (now >= end) {
+      const { data: live } = await supabaseAdmin.from("live_quizzes").select("*").eq("id", quizId).maybeSingle();
+      if (live?.status === "live") await finishLiveQuiz(live);
     }
     return;
   }
