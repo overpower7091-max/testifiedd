@@ -71,6 +71,27 @@ function LiveQuizPage() {
   return <QuizRunner quizId={quizId} onLeave={() => setQuizId(null)} upcoming={upcoming} />;
 }
 
+function LiveSkeleton() {
+  return (
+    <div className="min-h-screen">
+      <AppHeader back={{ to: "/home" }} />
+      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-6" aria-busy="true">
+        <div className="glass-strong rounded-3xl p-8 flex flex-col items-center gap-4">
+          <div className="h-3 w-20 rounded-full bg-muted animate-pulse" />
+          <div className="h-7 w-48 rounded-full bg-muted animate-pulse" />
+          <div className="h-14 w-64 rounded-2xl bg-muted animate-pulse" />
+          <div className="h-3 w-56 rounded-full bg-muted animate-pulse" />
+        </div>
+        <div className="mt-6 space-y-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="glass h-14 rounded-xl animate-pulse" />
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
+
 function SchedulePreview({ upcoming, onOpen }: { upcoming: any[]; onOpen: (id: string) => void }) {
   if (upcoming.length === 0) return null;
   return (
@@ -200,7 +221,7 @@ function QuizRunner({
   useEffect(() => {
     (async () => {
       try {
-        await join({ data: { quiz_id: quizId } }).catch(() => null);
+        void join({ data: { quiz_id: quizId } }).catch(() => null);
         await reload();
       } catch (e: any) {
         toast.error(e?.message ?? "Failed to load quiz");
@@ -275,13 +296,7 @@ function QuizRunner({
       });
   }, [status, index, session, submit, quizId]);
 
-  if (status === "loading" || !session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
+  if (status === "loading" || !session) return <LiveSkeleton />;
 
   if (status === "cancelled" || status === "error") {
     return (
