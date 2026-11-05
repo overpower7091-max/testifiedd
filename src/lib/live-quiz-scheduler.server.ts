@@ -76,8 +76,8 @@ export async function ensureScheduledForToday() {
       .from("live_quizzes")
       .select("id, status")
       .eq("class_level", level as any)
-      .eq("subject_id", subject.id)
       .eq("scheduled_at", scheduledAt.toISOString())
+      .limit(1)
       .maybeSingle();
     if (existing) {
       if (existing.status === "configuration_required" && bp) {
