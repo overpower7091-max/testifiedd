@@ -76,8 +76,8 @@ export async function ensureScheduledForToday() {
       .from("live_quizzes")
       .select("id, status")
       .eq("class_level", level as any)
-      .eq("subject_id", subject.id)
       .eq("scheduled_at", scheduledAt.toISOString())
+      .limit(1)
       .maybeSingle();
     if (existing) {
       if (existing.status === "configuration_required" && bp) {
@@ -228,7 +228,21 @@ export async function generateQuizIfNeeded(quiz: any) {
     .maybeSingle();
   if (!bp) {
     // No blueprint: fall back to random questions from the subject's banks.
-    const fallback = await pickFallbackQuestions(quiz.subject_id, quiz.questions_total ?? 10);
+    let fallback = await pickFallbackQuestions(quiz.subject_id, quiz.questions_total ?? 10);
+    if (!fallback.length) {
+      // Scheduled subject has no questions (e.g. Class 8 Maths) — switch to
+      // another core subject of the same class that does have questions.
+      const alt = await findAlternateSubject(quiz.subject_id);
+      for (const altId of alt) {
+        const picked = await pickFallbackQuestions(altId, quiz.questions_total ?? 10);
+        if (picked.length) {
+          await supabaseAdmin.from("live_quizzes").update({ subject_id: altId }).eq("id", quiz.id);
+          quiz.subject_id = altId;
+          fallback = picked;
+          break;
+        }
+      }
+    }
     if (!fallback.length) {
       await supabaseAdmin.from("live_quizzes").update({ status: "configuration_required" }).eq("id", quiz.id);
       return;
@@ -292,6 +306,21 @@ export async function generateQuizIfNeeded(quiz: any) {
       blueprint_version_id: version?.id ?? null,
     })
     .eq("id", quiz.id);
+}
+
+async function findAlternateSubject(subjectId: string): Promise<string[]> {
+  const { data: cur } = await supabaseAdmin.from("subjects").select("class_id").eq("id", subjectId).maybeSingle();
+  if (!cur) return [];
+  const { data: subs } = await supabaseAdmin
+    .from("subjects")
+    .select("id, slug")
+    .eq("class_id", cur.class_id)
+    .in("slug", ["physical-science", "life-science", "mathematics"]);
+  const order = ["physical-science", "life-science", "mathematics"];
+  return (subs ?? [])
+    .filter((s: any) => s.id !== subjectId)
+    .sort((a: any, b: any) => order.indexOf(a.slug) - order.indexOf(b.slug))
+    .map((s: any) => s.id);
 }
 
 async function pickFallbackQuestions(subjectId: string, total: number) {
@@ -629,6 +658,15 @@ async function sendReminderIfDue(quiz: any) {
 
 export async function runLiveQuizTick() {
   await ensureScheduledForToday();
+  // Pre-generate bundles for anything starting in the next 24h so stuck
+  // rows (e.g. a subject with no questions) are repaired well before start.
+  const { data: upcoming } = await supabaseAdmin
+    .from("live_quizzes")
+    .select("*")
+    .eq("status", "configuration_required")
+    .gte("scheduled_at", new Date().toISOString())
+    .lte("scheduled_at", new Date(Date.now() + 24 * 3600_000).toISOString());
+  await Promise.all((upcoming ?? []).map((q) => generateQuizIfNeeded(q).catch(() => {})));
   // Only touch quizzes in the active window: about to start, or currently
   // running. Stale rows from previous days are ignored so the tick stays fast.
   const horizonEnd = new Date(Date.now() + 20 * 60_000).toISOString();

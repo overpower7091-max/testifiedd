@@ -9,6 +9,7 @@ import {
   runSchedulerNow,
   adminScheduleNow,
   listAdminLiveQuizResults,
+  adminInstantTest,
 } from "@/lib/live-quiz-admin.functions";
 import { toast } from "sonner";
 import { Loader2, Save, Play, Zap, Plus, Trash2, Trophy, Users, History } from "lucide-react";
@@ -53,6 +54,7 @@ function LiveQuizConfig() {
   const runTick = useServerFn(runSchedulerNow);
   const schedNow = useServerFn(adminScheduleNow);
   const loadResults = useServerFn(listAdminLiveQuizResults);
+  const instant = useServerFn(adminInstantTest);
 
   useEffect(() => {
     let activeRequest = true;
@@ -178,6 +180,20 @@ function LiveQuizConfig() {
     }
   };
 
+  const [instantBusy, setInstantBusy] = useState(false);
+  const handleInstantTest = async () => {
+    setInstantBusy(true);
+    try {
+      await instant({ data: { class_level: level, subject_id: subjectId } });
+      toast.success(`Test quiz for Class ${level} starts in 20 seconds`);
+      window.open("/live", "_blank");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not start test");
+    } finally {
+      setInstantBusy(false);
+    }
+  };
+
   const availableTopics = topicsAvail.filter((t) => !selected.find((s) => s.topic_id === t.id));
   const selectedResultQuiz = resultData.quizzes.find((quiz: any) => quiz.id === resultQuizId);
   const selectedParticipants = resultData.participants.filter((row: any) => row.live_quiz_id === resultQuizId);
@@ -240,6 +256,15 @@ function LiveQuizConfig() {
               </div>
             </div>
             <div className="pt-2 border-t border-white/10 space-y-2">
+              <button
+                onClick={handleInstantTest}
+                disabled={!subjectId || instantBusy}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full btn-gradient px-3 py-2 text-xs font-semibold disabled:opacity-50"
+              >
+                {instantBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                Instant test (3 Qs, starts in 20s)
+              </button>
+              <p className="text-[10px] text-muted-foreground text-center">Opens the student live page in a new tab.</p>
               <button
                 onClick={handleRunNow}
                 disabled={!subjectId || !selected.length}
