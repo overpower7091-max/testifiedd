@@ -658,6 +658,15 @@ async function sendReminderIfDue(quiz: any) {
 
 export async function runLiveQuizTick() {
   await ensureScheduledForToday();
+  // Pre-generate bundles for anything starting in the next 24h so stuck
+  // rows (e.g. a subject with no questions) are repaired well before start.
+  const { data: upcoming } = await supabaseAdmin
+    .from("live_quizzes")
+    .select("*")
+    .eq("status", "configuration_required")
+    .gte("scheduled_at", new Date().toISOString())
+    .lte("scheduled_at", new Date(Date.now() + 24 * 3600_000).toISOString());
+  await Promise.all((upcoming ?? []).map((q) => generateQuizIfNeeded(q).catch(() => {})));
   // Only touch quizzes in the active window: about to start, or currently
   // running. Stale rows from previous days are ignored so the tick stays fast.
   const horizonEnd = new Date(Date.now() + 20 * 60_000).toISOString();
