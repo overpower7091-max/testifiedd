@@ -200,6 +200,42 @@ export const adminScheduleNow = createServerFn({ method: "POST" })
     return { ok: true, live_quiz_id: q.id, scheduled_at: when.toISOString() };
   });
 
+// Admin: instant end-to-end test — 3 questions × 20s, starting in 20 seconds.
+export const adminInstantTest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { class_level: string; subject_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const when = new Date(Date.now() + 20_000);
+    when.setMilliseconds(0);
+    const { data: q, error } = await supabaseAdmin
+      .from("live_quizzes")
+      .insert({
+        class_level: data.class_level as any,
+        subject_id: data.subject_id,
+        scheduled_at: when.toISOString(),
+        status: "configuration_required",
+        questions_total: 3,
+        question_seconds: 20,
+      })
+      .select("*")
+      .single();
+    if (error) throw error;
+    // Force the no-blueprint random path by temporarily treating it as fallback
+    const { generateQuizIfNeeded } = await import("./live-quiz-scheduler.server");
+    await generateQuizIfNeeded(q);
+    const { count } = await supabaseAdmin
+      .from("live_quiz_questions")
+      .select("*", { count: "exact", head: true })
+      .eq("live_quiz_id", q.id);
+    if (!count) {
+      await supabaseAdmin.from("live_quizzes").delete().eq("id", q.id);
+      throw new Error("No questions available for this class");
+    }
+    return { ok: true, live_quiz_id: q.id, scheduled_at: when.toISOString() };
+  });
+
 export const listAdminLiveQuizResults = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { class_level: string }) => d)

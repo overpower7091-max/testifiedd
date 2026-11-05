@@ -163,7 +163,7 @@ function Home() {
                   Start practising <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link to="/live" className="inline-flex items-center gap-2 rounded-full border border-danger/60 bg-danger px-5 py-2.5 text-sm font-semibold text-destructive-foreground shadow-lg shadow-danger/20 transition-transform hover:scale-[1.03] active:scale-95">
-                  <Radio className="h-4 w-4" /> Join live mock
+                  <Radio className="h-4 w-4" /> Join live quiz
                 </Link>
               </div>
 
@@ -263,7 +263,6 @@ function Home() {
             <div className="mt-4 space-y-2.5">
               <QuickAction to="/subjects" tone="primary" icon={<DailyQuizIcon className="h-[19px] w-[19px]" />} title="Daily Quiz" desc="Today's challenge" />
               <QuickAction to="/live" tone="danger" icon={<LiveIcon className="h-[19px] w-[19px]" />} title="Live Quiz" desc="Scheduled mocks" />
-              <QuickAction to="/mock" tone="brand2" icon={<AiSolverIcon className="h-[19px] w-[19px]" />} title="AI Doubt Solver" desc="Coming soon" />
               <QuickAction to="/leaderboard" tone="warning" icon={<LeaderboardIcon className="h-[19px] w-[19px]" />} title="Leaderboard" desc="Compete in your class" />
               <QuickAction to="/materials" tone="brand2" icon={<BookOpen className="h-[19px] w-[19px]" />} title="Study Materials" desc="Notes, videos & links" />
               <QuickAction to="/history" tone="success" icon={<HistoryIcon className="h-[19px] w-[19px]" />} title="Quiz History" desc="Review attempts" />
