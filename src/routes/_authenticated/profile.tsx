@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Loader2, Trophy, Flame, Target, Sparkles, TrendingUp, BookOpen,
+  Loader2, Trophy, Flame, Target, Sparkles, TrendingUp, BookOpen, Pencil, Check, X,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
@@ -38,6 +39,23 @@ function Profile() {
   const [profile, setProfile] = useState<any>(null);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
+  async function saveName() {
+    const name = nameDraft.trim().replace(/\s+/g, " ");
+    if (name.length < 2) { toast.error("Name must be at least 2 characters"); return; }
+    if (name.length > 50) { toast.error("Name must be 50 characters or less"); return; }
+    setSavingName(true);
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from("profiles").update({ full_name: name }).eq("id", u.user!.id);
+    setSavingName(false);
+    if (error) { toast.error("Could not update name"); return; }
+    setProfile((p: any) => ({ ...p, full_name: name }));
+    setEditing(false);
+    toast.success("Name updated");
+  }
 
   useEffect(() => {
     (async () => {
@@ -102,7 +120,24 @@ function Profile() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-xs uppercase tracking-[0.2em] text-primary/80 font-medium">Profile</div>
-              <h1 className="mt-1 text-3xl sm:text-4xl font-semibold tracking-tight truncate">{profile.full_name || "Student"}</h1>
+              {editing ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <input value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} maxLength={50} autoFocus
+                    onKeyDown={(e) => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditing(false); }}
+                    className="glass rounded-xl px-3 py-2 text-lg font-semibold bg-transparent outline-none focus:ring-2 focus:ring-primary/50 min-w-0 flex-1" />
+                  <button onClick={saveName} disabled={savingName} className="btn-gradient rounded-xl px-3 py-2 text-sm font-medium text-white inline-flex items-center gap-1 disabled:opacity-60">
+                    {savingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Save
+                  </button>
+                  <button onClick={() => setEditing(false)} className="glass rounded-xl px-3 py-2 text-sm inline-flex items-center gap-1"><X className="h-4 w-4" /> Cancel</button>
+                </div>
+              ) : (
+                <div className="mt-1 flex items-center gap-2 min-w-0">
+                  <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight truncate">{profile.full_name || "Student"}</h1>
+                  <button onClick={() => { setNameDraft(profile.full_name || ""); setEditing(true); }} aria-label="Edit name" className="glass rounded-full p-2 hover:text-primary shrink-0">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
               <p className="mt-1 text-sm text-muted-foreground">Class {profile.class ?? "—"} · WBBSE</p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:min-w-[420px]">
