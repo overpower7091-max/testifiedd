@@ -15,6 +15,13 @@
       "when": 1793586779183,
       "tag": "0001_class_subject_stats",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793974643517,
+      "tag": "0002_student_syllabus",
+      "breakpoints": true
     }
   ]
 }
