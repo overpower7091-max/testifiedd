@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, PlayCircle, ArrowRight, ChevronDown, Layers } from "lucide-react";
+import { Loader2, PlayCircle, ArrowRight, ChevronDown, Layers, Shuffle } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,6 +19,7 @@ function SubjectDetail() {
   const [open, setOpen] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [syllabusCount, setSyllabusCount] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -29,6 +30,10 @@ function SubjectDetail() {
         userRes.user ? supabase.from("user_roles").select("role").eq("user_id", userRes.user.id) : Promise.resolve({ data: [] } as any),
       ]);
       setSubject(s);
+      if (userRes.user) {
+        supabase.from("student_syllabus").select("topic_ids").eq("subject_id", id).eq("user_id", userRes.user.id).maybeSingle()
+          .then(({ data }) => setSyllabusCount(data?.topic_ids?.length ?? 0));
+      }
       setIsAdmin(!!roles?.some((r: any) => r.role === "admin"));
 
       const enriched: Chapter[] = await Promise.all((chs ?? []).map(async (c: any) => {
@@ -68,6 +73,30 @@ function SubjectDetail() {
               Manage content <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           )}
+        </div>
+
+        <div className="mt-6 glass-strong rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl glass-tint text-primary shrink-0">
+            <Shuffle className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-base font-semibold">Mixed questions according to your syllabus</div>
+            <div className="text-xs text-muted-foreground">
+              {syllabusCount ? `${syllabusCount} topics selected · 15–20 mixed MCQs` : "Pick the topics in your school exam to start."}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {syllabusCount > 0 && (
+              <Link to="/practice/topic/$topicId" params={{ topicId: `mixed-${id}` }}
+                className="btn-gradient rounded-full inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium">
+                <PlayCircle className="h-3.5 w-3.5" /> Start
+              </Link>
+            )}
+            <Link to="/syllabus/$subjectId" params={{ subjectId: id }}
+              className={`${syllabusCount ? "glass" : "btn-gradient"} rounded-full inline-flex items-center px-4 py-2 text-xs font-medium`}>
+              {syllabusCount ? "Edit syllabus" : "Select syllabus"}
+            </Link>
+          </div>
         </div>
 
         <div className="mt-6 space-y-3">

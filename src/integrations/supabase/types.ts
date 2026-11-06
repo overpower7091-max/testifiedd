@@ -825,6 +825,44 @@ export type Database = {
           },
         ]
       }
+      student_syllabus: {
+        Row: {
+          created_at: string
+          id: string
+          question_count: number
+          subject_id: string
+          topic_ids: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          question_count?: number
+          subject_id: string
+          topic_ids?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          question_count?: number
+          subject_id?: string
+          topic_ids?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_syllabus_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_materials: {
         Row: {
           class_level: Database["public"]["Enums"]["class_level"]
