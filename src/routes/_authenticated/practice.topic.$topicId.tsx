@@ -7,6 +7,7 @@ import { LoadedPage, PracticeSkeleton } from "@/components/page-skeletons";
 import { ReportQuestionDialog } from "@/components/report-question-dialog";
 import { QuestionImages } from "@/lib/question-images";
 import { supabase } from "@/integrations/supabase/client";
+import { MIXED_PREFIX, clampMixedCount, pickMixed } from "@/lib/mixed-practice";
 
 export const Route = createFileRoute("/_authenticated/practice/topic/$topicId")({
   head: () => ({ meta: [{ title: "Practice — Testified" }] }),
@@ -34,7 +35,44 @@ function TopicPractice() {
   const [sessionId, setSessionId] = useState<string>(() => (globalThis.crypto?.randomUUID?.() ?? String(Date.now())));
   const [attemptId, setAttemptId] = useState<string | null>(null);
 
+  const isMixed = topicId.startsWith(MIXED_PREFIX);
+
+  const loadMixed = async () => {
+    const subId = topicId.slice(MIXED_PREFIX.length);
+    setSubjectId(subId);
+    setTopic({ name: "Mixed — your syllabus", chapter_id: "" });
+    const { data: userRes } = await supabase.auth.getUser();
+    const { data: syl } = await supabase.from("student_syllabus")
+      .select("topic_ids, question_count").eq("subject_id", subId)
+      .eq("user_id", userRes.user?.id ?? "").maybeSingle();
+    const topicIds: string[] = (syl as any)?.topic_ids ?? [];
+    if (!topicIds.length) { navigate({ to: "/syllabus/$subjectId", params: { subjectId: subId } }); return; }
+    const [{ data: banks }, { data: tps }] = await Promise.all([
+      supabase.from("question_banks").select("id, topic_id").in("topic_id", topicIds),
+      supabase.from("topics").select("id, chapter_id").in("id", topicIds),
+    ]);
+    const topicByBank = new Map((banks ?? []).map((b: any) => [b.id, b.topic_id]));
+    const chapterByTopic = new Map((tps ?? []).map((t: any) => [t.id, t.chapter_id]));
+    if (!topicByBank.size) { setQuestions([]); return; }
+    const { data: qs } = await supabase.from("questions")
+      .select("id, question, options, correct_answer, explanation, difficulty, images, question_bank_id")
+      .in("question_bank_id", [...topicByBank.keys()]).limit(3000);
+    const pools: Record<string, any[]> = {};
+    for (const q of qs ?? []) {
+      const tid = topicByBank.get((q as any).question_bank_id) as string;
+      (pools[tid] ??= []).push({
+        ...q,
+        topic_id: tid,
+        chapter_id: chapterByTopic.get(tid) ?? null,
+        options: Array.isArray((q as any).options) ? (q as any).options : [],
+        correct_answer: typeof (q as any).correct_answer === "number" ? (q as any).correct_answer : Number((q as any).correct_answer ?? 0),
+      });
+    }
+    setQuestions(pickMixed(pools, clampMixedCount((syl as any)?.question_count ?? 15)) as any);
+  };
+
   const loadQuestions = async () => {
+    if (isMixed) return loadMixed();
     const { data: t } = await supabase.from("topics").select("name, chapter_id").eq("id", topicId).maybeSingle();
     setTopic(t as any);
     let subId: string | null = null;
@@ -88,8 +126,9 @@ function TopicPractice() {
     setAnswers((a) => [...a, { correct: isCorrect }]);
     if (userId) {
       const { data: attempt } = await supabase.from("quiz_attempts").insert({
-        user_id: userId, question_id: q.id, chapter_id: chapterId,
-        subject_id: subjectId, topic_id: topicId, session_id: sessionId,
+        user_id: userId, question_id: q.id,
+        chapter_id: isMixed ? (q as any).chapter_id : chapterId,
+        subject_id: subjectId, topic_id: isMixed ? (q as any).topic_id : topicId, session_id: sessionId,
         selected_index: selected, is_correct: isCorrect, time_seconds: elapsed,
       }).select("id").single();
       setAttemptId(attempt?.id ?? null);
@@ -159,7 +198,7 @@ function TopicPractice() {
               <div className="glass rounded-2xl p-3"><div className="text-xs text-muted-foreground">XP</div><div className="text-xl font-semibold gradient-text">+{correctCount * 10}</div></div>
             </div>
             <div className="mt-6 flex flex-wrap gap-2 justify-center">
-              <button onClick={restart} className="glass rounded-full px-5 py-2 text-sm font-medium hover:text-primary inline-flex items-center gap-2"><RotateCcw className="h-4 w-4" /> New 10 questions</button>
+              <button onClick={restart} className="glass rounded-full px-5 py-2 text-sm font-medium hover:text-primary inline-flex items-center gap-2"><RotateCcw className="h-4 w-4" /> {isMixed ? "New mixed set" : "New 10 questions"}</button>
               <Link to="/history/session/$sessionId" params={{ sessionId }} className="glass rounded-full px-5 py-2 text-sm font-medium hover:text-primary inline-flex items-center gap-2">Review answers</Link>
               {subjectId && (
                 <Link to="/subject/$id" params={{ id: subjectId }} className="btn-gradient rounded-full px-5 py-2 text-sm font-medium inline-flex items-center gap-2">More subtopics <ArrowRight className="h-4 w-4" /></Link>
