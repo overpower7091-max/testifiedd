@@ -30,6 +30,7 @@ import { Route as AuthenticatedAdminMaterialsRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin.reports'
 import { Route as AuthenticatedPracticeChapterIdRouteImport } from './routes/_authenticated/practice.$chapterId'
 import { Route as AuthenticatedSubjectIdRouteImport } from './routes/_authenticated/subject.$id'
+import { Route as AuthenticatedSyllabusSubjectIdRouteImport } from './routes/_authenticated/syllabus.$subjectId'
 import { Route as AuthenticatedAdminClassLevelRouteImport } from './routes/_authenticated/admin.class.$level'
 import { Route as AuthenticatedAdminContentIndexRouteImport } from './routes/_authenticated/admin.content.index'
 import { Route as AuthenticatedAdminStudentIdRouteImport } from './routes/_authenticated/admin.student.$id'
@@ -148,6 +149,12 @@ const AuthenticatedSubjectIdRoute = AuthenticatedSubjectIdRouteImport.update({
   path: '/subject/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSyllabusSubjectIdRoute =
+  AuthenticatedSyllabusSubjectIdRouteImport.update({
+    id: '/syllabus/$subjectId',
+    path: '/syllabus/$subjectId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminClassLevelRoute =
   AuthenticatedAdminClassLevelRouteImport.update({
     id: '/class/$level',
@@ -217,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/practice/$chapterId': typeof AuthenticatedPracticeChapterIdRoute
   '/subject/$id': typeof AuthenticatedSubjectIdRoute
+  '/syllabus/$subjectId': typeof AuthenticatedSyllabusSubjectIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/class/$level': typeof AuthenticatedAdminClassLevelRoute
   '/admin/student/$id': typeof AuthenticatedAdminStudentIdRoute
@@ -246,6 +254,7 @@ export interface FileRoutesByTo {
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/practice/$chapterId': typeof AuthenticatedPracticeChapterIdRoute
   '/subject/$id': typeof AuthenticatedSubjectIdRoute
+  '/syllabus/$subjectId': typeof AuthenticatedSyllabusSubjectIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/class/$level': typeof AuthenticatedAdminClassLevelRoute
   '/admin/student/$id': typeof AuthenticatedAdminStudentIdRoute
@@ -278,6 +287,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/_authenticated/practice/$chapterId': typeof AuthenticatedPracticeChapterIdRoute
   '/_authenticated/subject/$id': typeof AuthenticatedSubjectIdRoute
+  '/_authenticated/syllabus/$subjectId': typeof AuthenticatedSyllabusSubjectIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/class/$level': typeof AuthenticatedAdminClassLevelRoute
   '/_authenticated/admin/student/$id': typeof AuthenticatedAdminStudentIdRoute
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/practice/$chapterId'
     | '/subject/$id'
+    | '/syllabus/$subjectId'
     | '/admin/'
     | '/admin/class/$level'
     | '/admin/student/$id'
@@ -339,6 +350,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/practice/$chapterId'
     | '/subject/$id'
+    | '/syllabus/$subjectId'
     | '/admin'
     | '/admin/class/$level'
     | '/admin/student/$id'
@@ -370,6 +382,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/reports'
     | '/_authenticated/practice/$chapterId'
     | '/_authenticated/subject/$id'
+    | '/_authenticated/syllabus/$subjectId'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/class/$level'
     | '/_authenticated/admin/student/$id'
@@ -539,6 +552,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSubjectIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/syllabus/$subjectId': {
+      id: '/_authenticated/syllabus/$subjectId'
+      path: '/syllabus/$subjectId'
+      fullPath: '/syllabus/$subjectId'
+      preLoaderRoute: typeof AuthenticatedSyllabusSubjectIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/class/$level': {
       id: '/_authenticated/admin/class/$level'
       path: '/class/$level'
@@ -639,6 +659,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSubjectsRoute: typeof AuthenticatedSubjectsRoute
   AuthenticatedPracticeChapterIdRoute: typeof AuthenticatedPracticeChapterIdRoute
   AuthenticatedSubjectIdRoute: typeof AuthenticatedSubjectIdRoute
+  AuthenticatedSyllabusSubjectIdRoute: typeof AuthenticatedSyllabusSubjectIdRoute
   AuthenticatedHistorySessionSessionIdRoute: typeof AuthenticatedHistorySessionSessionIdRoute
   AuthenticatedPracticeTopicTopicIdRoute: typeof AuthenticatedPracticeTopicTopicIdRoute
 }
@@ -656,6 +677,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSubjectsRoute: AuthenticatedSubjectsRoute,
   AuthenticatedPracticeChapterIdRoute: AuthenticatedPracticeChapterIdRoute,
   AuthenticatedSubjectIdRoute: AuthenticatedSubjectIdRoute,
+  AuthenticatedSyllabusSubjectIdRoute: AuthenticatedSyllabusSubjectIdRoute,
   AuthenticatedHistorySessionSessionIdRoute:
     AuthenticatedHistorySessionSessionIdRoute,
   AuthenticatedPracticeTopicTopicIdRoute:
